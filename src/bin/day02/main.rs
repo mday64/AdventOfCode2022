@@ -5,19 +5,23 @@ fn main() -> anyhow::Result<()> {
         .unwrap_or("src/bin/day02/input.txt".into());
     let input = std::fs::read_to_string(path)?;
 
-    let result1 = part1(input)?;
+    let result1 = part1(&input)?;
     println!("Part 1: {}", result1);
     assert_eq!(result1, 13268);
+
+    let result2 = part2(&input)?;
+    println!("Part 2: {}", result2);
+    assert_eq!(result2, 15508);
 
     Ok(())
 }
 
-fn part1(input: String) -> Result<i32, anyhow::Error> {
+fn part1(input: &str) -> Result<i32, anyhow::Error> {
     let mut result = 0;
     for line in input.lines() {
         let mut letters = line.split(' ');
         let opponent = letters.next().ok_or(anyhow!("missing first letter"))?;
-        let me = letters.next().ok_or(anyhow!("missing first letter"))?;
+        let me = letters.next().ok_or(anyhow!("missing second letter"))?;
 
         // Add the score for the item I chose
         result += match me {
@@ -32,6 +36,45 @@ fn part1(input: String) -> Result<i32, anyhow::Error> {
             ("A", "X") | ("B", "Y") | ("C", "Z") => 3,
             ("A", "Y") | ("B", "Z") | ("C", "X") => 6,
             ("A", "Z") | ("B", "X") | ("C", "Y") => 0,
+            (_, _) => bail!("Invalid letter combination")
+        };
+    }
+    Ok(result)
+}
+
+fn part2(input: &str) -> Result<i32, anyhow::Error> {
+    let mut result = 0;
+    for line in input.lines() {
+        let mut letters = line.split(' ');
+        let opponent = letters.next().ok_or(anyhow!("missing first letter"))?;
+        let outcome = letters.next().ok_or(anyhow!("missing second letter"))?;
+
+        // Add the score for the outcome of the round
+        result += match outcome {
+            "X" => 0,
+            "Y" => 3,
+            "Z" => 6,
+            _ => bail!("Invalid letter for me")
+        };
+
+        // Figure out which item I would have to choose, and add its
+        // value to the score
+        result += match (opponent, outcome) {
+            // I lose
+            ("A", "X") => 3,
+            ("B", "X") => 1,
+            ("C", "X") => 2,
+
+            // draw
+            ("A", "Y") => 1,
+            ("B", "Y") => 2,
+            ("C", "Y") => 3,
+
+            // I win
+            ("A", "Z") => 2,
+            ("B", "Z") => 3,
+            ("C", "Z") => 1,
+
             (_, _) => bail!("Invalid letter combination")
         };
     }
