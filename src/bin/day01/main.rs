@@ -1,5 +1,4 @@
-use anyhow;
-use anyhow::Context;
+use anyhow::{self, Context as _};
 
 fn main() -> anyhow::Result<()> {
     let input = std::fs::read_to_string("src/bin/day01/input.txt")
