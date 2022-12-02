@@ -1,14 +1,14 @@
-use std::{ops::{AddAssign, Add}, error::Error};
+use std::{ops::AddAssign, error::Error};
 
 fn main() -> Result<(), Box<dyn Error>> {
     let input = std::fs::read_to_string("src/bin/day01/input.txt")?;
 
     let mut elf_totals = input.split("\n\n").map(|s| {
         // s is the numbers for one elf
-        try_sum(s.split_terminator('\n').map(|n|
+        s.split_terminator('\n').map(|n|
             // n is one number for the current elf
             n.parse::<u32>()
-        ))
+        ).try_sum()
     }).collect::<Result<Vec<u32>,_>>()?;
 
     // Part 1
@@ -34,3 +34,18 @@ fn try_sum<I,T,E>(iter: I) -> Result<T,E>
     }
     Ok(result)
 }
+
+trait TrySum: Iterator {
+    fn try_sum<T,E>(&mut self) -> Result<T,E>
+    where   Self: Iterator<Item=Result<T,E>>,
+            T: Default + AddAssign,
+    {
+        let mut answer = T::default();
+        for x in self {
+            answer += x?;
+        }
+        Ok(answer)
+    }
+}
+
+impl<T> TrySum for T where T: Iterator {}
