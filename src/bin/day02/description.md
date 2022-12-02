@@ -26,3 +26,5 @@ This strategy guide predicts and recommends the following:
 In this example, if you were to follow the strategy guide, you would get a total score of 15 (8 + 1 + **`6`**).
 
 **What would your total score be if everything goes exactly according to your strategy guide?**
+
+Your puzzle answer was `13268`.
