@@ -1,7 +1,9 @@
-use std::error::Error;
+use anyhow;
+use anyhow::Context;
 
-fn main() -> Result<(), Box<dyn Error>> {
-    let input = std::fs::read_to_string("src/bin/day01/input.txt")?;
+fn main() -> anyhow::Result<()> {
+    let input = std::fs::read_to_string("src/bin/day01/input.txt")
+        .context("opening input")?;
 
     let mut elf_totals = input.split("\n\n").map(|s| {
         // s is the numbers for one elf
@@ -9,7 +11,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             // n is one number for the current elf
             n.parse::<u32>()
         ).sum()
-    }).collect::<Result<Vec<u32>,_>>()?;
+    }).collect::<Result<Vec<u32>,_>>().context("parsing numbers")?;
 
     // Part 1
     let result1 = *elf_totals.iter().max().unwrap();
