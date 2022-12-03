@@ -16,11 +16,9 @@ fn main() -> anyhow::Result<()> {
     // numbers ("priorities").
     //
     let result1: u32 = input.lines().map(|line| {
-        assert!(line.len() % 2 == 0);
-        let mid = line.len() / 2;
-
-        let first_half = line[..mid].chars().collect::<HashSet<char>>();
-        let second_half = line[mid..].chars().collect::<HashSet<char>>();
+        let (first, second) = line.split_at(line.len()/2);
+        let first_half = first.chars().collect::<HashSet<char>>();
+        let second_half = second.chars().collect::<HashSet<char>>();
         let overlap = *first_half.intersection(&second_half).next().unwrap();
 
         priority(overlap)
