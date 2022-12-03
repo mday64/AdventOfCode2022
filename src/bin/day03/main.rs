@@ -23,11 +23,7 @@ fn main() -> anyhow::Result<()> {
         let second_half = line[mid..].chars().collect::<HashSet<char>>();
         let overlap = *first_half.intersection(&second_half).next().unwrap();
 
-        match overlap {
-            'a'..='z' => 1 + overlap as u32 - 'a' as u32,
-            'A'..='Z' => 27 + overlap as u32 - 'A' as u32,
-            _ => panic!("Not a letter")
-        }
+        priority(overlap)
     }).sum();
     println!("Part 1: {}", result1);
     assert_eq!(result1, 7872);
@@ -47,14 +43,18 @@ fn main() -> anyhow::Result<()> {
             .filter(|letter| letters3.contains(letter))
             .next().unwrap();
 
-        match overlap {
-            'a'..='z' => 1 + overlap as u32 - 'a' as u32,
-            'A'..='Z' => 27 + overlap as u32 - 'A' as u32,
-            _ => panic!("Not a letter")
-        }
+        priority(overlap)
     }).sum();
     println!("Part 2: {}", result2);
     assert_eq!(result2, 2497);
 
     Ok(())
+}
+
+fn priority(ch: char) -> u32 {
+    match ch {
+        'a'..='z' => 1 + ch as u32 - 'a' as u32,
+        'A'..='Z' => 27 + ch as u32 - 'A' as u32,
+        _ => panic!("Not a letter")
+    }
 }
