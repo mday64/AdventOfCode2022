@@ -1,4 +1,5 @@
 use std::ops::RangeInclusive;
+use regex::Regex;
 
 fn main() {
     let path = std::env::args().skip(1).next()
@@ -9,24 +10,15 @@ fn main() {
     //
     // Parsing the input
     //
-    let mut range_pairs: Vec<(RangeInclusive<u32>, RangeInclusive<u32>)> = Vec::new();
-    for line in input.lines() {
-        let mut ranges = line.split(',');
-        let range1_str = ranges.next().expect("Can't get first range");
-        let range2_str = ranges.next().expect("Can't get second range");
-
-        let mut ends = range1_str.split('-');
-        let start = ends.next().expect("Can't get start of first range");
-        let end = ends.next().expect("Can't get end of first range");
-        let range1 = RangeInclusive::new(start.parse().unwrap(), end.parse().unwrap());
-
-        let mut ends = range2_str.split('-');
-        let start = ends.next().expect("Can't get start of first range");
-        let end = ends.next().expect("Can't get end of first range");
-        let range2 = RangeInclusive::new(start.parse().unwrap(), end.parse().unwrap());
-
-        range_pairs.push((range1, range2));
-    }
+    let re = Regex::new(r"^(\d+)-(\d+),(\d+)-(\d+)$").unwrap();
+    let range_pairs = input.lines().map(|line| {
+        let captures = re.captures(line).expect("Can't parse line");
+        let s1 = captures.get(1).unwrap().as_str().parse::<u32>().unwrap();
+        let e1 = captures.get(2).unwrap().as_str().parse::<u32>().unwrap();
+        let s2 = captures.get(3).unwrap().as_str().parse::<u32>().unwrap();
+        let e2 = captures.get(4).unwrap().as_str().parse::<u32>().unwrap();
+        (RangeInclusive::new(s1, e1), RangeInclusive::new(s2, e2))
+    }).collect::<Vec<_>>();
 
     //
     // Part 1
