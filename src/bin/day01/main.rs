@@ -1,4 +1,5 @@
-fn main() {
+use std::error::Error;
+fn main() -> Result<(), Box<dyn Error>> {
     let input = std::fs::read_to_string("src/bin/day01/input.txt")
         .expect("Can't open input.txt");
 
@@ -20,4 +21,6 @@ fn main() {
     let result2: u32 = elf_totals.iter().rev().take(3).sum();
     println!("Part 2: {}", result2);
     assert_eq!(result2, 204610);
+
+    Ok(())
 }
