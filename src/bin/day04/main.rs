@@ -13,10 +13,10 @@ fn main() {
     let re = Regex::new(r"^(\d+)-(\d+),(\d+)-(\d+)$").unwrap();
     let range_pairs = input.lines().map(|line| {
         let captures = re.captures(line).expect("Can't parse line");
-        let s1 = captures.get(1).unwrap().as_str().parse::<u32>().unwrap();
-        let e1 = captures.get(2).unwrap().as_str().parse::<u32>().unwrap();
-        let s2 = captures.get(3).unwrap().as_str().parse::<u32>().unwrap();
-        let e2 = captures.get(4).unwrap().as_str().parse::<u32>().unwrap();
+        let s1 = captures[1].parse::<u32>().unwrap();
+        let e1 = captures[2].parse::<u32>().unwrap();
+        let s2 = captures[3].parse::<u32>().unwrap();
+        let e2 = captures[4].parse::<u32>().unwrap();
         (RangeInclusive::new(s1, e1), RangeInclusive::new(s2, e2))
     }).collect::<Vec<_>>();
 
