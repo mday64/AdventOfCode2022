@@ -7,7 +7,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         // s is the numbers for one elf
         s.split_terminator('\n').map(|n|
             // n is one number for the current elf
-            n.parse::<u32>().expect("invalid number")
+            n.parse::<u32>()?
         ).sum()
     ).collect();
 
