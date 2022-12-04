@@ -39,6 +39,17 @@ fn main() {
         (r2.contains(r1.start()) && r2.contains(r1.end()))
     ).count();
     println!("Part 1: {}", result1);
-    // assert_eq!(result1, 0);
+    assert_eq!(result1, 441);
 
+    //
+    // Part 2
+    //
+    // One range overlaps another if it contains the start *or* end of the other.
+    //
+    let result2 = range_pairs.iter().filter(|(r1, r2)|
+        (r1.contains(r2.start()) || r1.contains(r2.end())) ||
+        (r2.contains(r1.start()) || r2.contains(r1.end()))
+    ).count();
+    println!("Part 2: {}", result2);
+    assert_eq!(result2, 861);
 }
