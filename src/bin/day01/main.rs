@@ -5,10 +5,15 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let mut elf_totals: Vec<u32> = input.split("\n\n").map(|s|
         // s is the numbers for one elf
-        s.split_terminator('\n').map(|n|
+        s.split_terminator('\n').map(|n| {
             // n is one number for the current elf
-            n.parse::<u32>()?
-        ).sum()
+            let x = n.parse::<u32>();
+            if let Err(e) = x {
+                return Err(e);
+            } else {
+                x.unwrap()
+            }
+        }).sum()
     ).collect();
 
     // Part 1
