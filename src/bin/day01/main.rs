@@ -8,11 +8,11 @@ fn main() -> Result<(), Box<dyn Error>> {
         s.split_terminator('\n').map(|n| {
             // n is one number for the current elf
             let x = n.parse::<u32>();
-            if let Err(e) = x {
+            Ok(if let Err(e) = x {
                 return Err(e);
             } else {
                 x.unwrap()
-            }
+            })
         }).sum()
     ).collect();
 
