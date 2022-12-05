@@ -1,7 +1,14 @@
-fn main() {
-    // How much effort do I want to put into parsing the input?  How
-    // general do I want it to be?
+use regex::Regex;
 
+fn main() {
+    let path = std::env::args().skip(1).next()
+        .unwrap_or("src/bin/day05/input.txt".into());
+    let input = std::fs::read_to_string(path)
+        .expect("Can't read input");
+
+    let result1 = part1(&input);
+    println!("Part 1: {}", result1);
+    assert_eq!(result1, "PSNRGBTFT");
 }
 
 fn part1(input: &str) -> String {
@@ -45,6 +52,24 @@ fn part1(input: &str) -> String {
     assert_eq!(lines.next(), Some(""));
 
     // Now process the lines telling us how to move items between stacks
+    // We really just need to parse the three numbers on each line.
+    let re = Regex::new(r"move (\d+) from (\d+) to (\d+)").unwrap();
+    for line in lines {
+        let caps = re.captures(line).unwrap();
+        let count = caps[1].parse::<u32>().unwrap();
+        let source = caps[2].parse::<usize>().unwrap();
+        let dest = caps[3].parse::<usize>().unwrap();
+
+        for _ in 0..count {
+            let c = stacks[source-1].pop().unwrap();
+            stacks[dest-1].push(c);
+
+            // Note: This doesn't compile:
+            // assert_ne!(source, dest);
+            // stacks[dest].push(stacks[source].pop().unwrap())
+            // because it requires borrowing stacks[] as mutuable twice
+        }
+    }
 
     // Finally, grab the top letter on each stack
     stacks.iter().map(|stack| stack[stack.len()-1]).collect()
