@@ -11,6 +11,10 @@ fn main() {
     let result1 = part1(&input);
     println!("Part 1: {}", result1);
     assert_eq!(result1, "PSNRGBTFT");
+
+    let result2 = part2(&input);
+    println!("Part 2: {}", result2);
+    assert_eq!(result2, "BNTZFPMMW");
 }
 
 fn part1(input: &str) -> String {
@@ -28,6 +32,23 @@ fn part1(input: &str) -> String {
             // stacks[dest].push(stacks[source].pop().unwrap())
             // because it requires borrowing stacks[] as mutuable twice
         }
+    }
+
+    // Finally, grab the top letter on each stack
+    stacks.iter().map(|stack| stack[stack.len()-1]).collect()
+}
+
+fn part2(input: &str) -> String {
+    // Parse the input
+    let (mut stacks, movements) = parse_input(input);
+
+    // Now execute the movements
+    for Movement{count, source, dest} in movements {
+        let count = count as usize;
+        let source = &mut stacks[source - 1];
+        let moved = source.split_off(source.len() - count);
+        let dest = &mut stacks[dest - 1];
+        dest.extend_from_slice(&moved);
     }
 
     // Finally, grab the top letter on each stack
@@ -101,7 +122,7 @@ fn parse_input(input: &str) -> (Vec<Vec<char>>, Vec<Movement>) {
 
 #[cfg(test)]
 mod tests {
-    use super::part1;
+    use super::{part1, part2};
     const EXAMPLE1: &str = "
     [D]    
 [N] [C]    
@@ -111,7 +132,8 @@ mod tests {
 move 1 from 2 to 1
 move 3 from 1 to 3
 move 2 from 2 to 1
-move 1 from 1 to 2";
+move 1 from 1 to 2
+";
 
     #[test]
     fn test_part1() {
@@ -122,5 +144,16 @@ move 1 from 1 to 2";
         // the best approach I could come up with that made the example
         // input look like it does on the web page.
         assert_eq!(part1(&EXAMPLE1[1..]), String::from("CMZ"));
+    }
+
+    #[test]
+    fn test_part2() {
+        // Note the [1..] is to skip the initial newline, which is not
+        // part of the input.  I can't escape that newline the way I
+        // normally would, because it also skips over the leading spaces
+        // on the next line.  I need to retain those spaces.  This was
+        // the best approach I could come up with that made the example
+        // input look like it does on the web page.
+        assert_eq!(part2(&EXAMPLE1[1..]), String::from("MCD"));
     }
 }
