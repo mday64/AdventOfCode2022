@@ -1,4 +1,6 @@
+use std::str::FromStr;
 use regex::Regex;
+use lazy_static::lazy_static;
 
 fn main() {
     let path = std::env::args().skip(1).next()
@@ -12,9 +14,49 @@ fn main() {
 }
 
 fn part1(input: &str) -> String {
-    // How much effort do I want to put into parsing the input?  How
-    // general do I want it to be?
+    // Parse the input
+    let (mut stacks, movements) = parse_input(input);
 
+    // Now execute the movements
+    for Movement{count, source, dest} in movements {
+        for _ in 0..count {
+            let c = stacks[source-1].pop().unwrap();
+            stacks[dest-1].push(c);
+
+            // Note: This doesn't compile:
+            // assert_ne!(source, dest);
+            // stacks[dest].push(stacks[source].pop().unwrap())
+            // because it requires borrowing stacks[] as mutuable twice
+        }
+    }
+
+    // Finally, grab the top letter on each stack
+    stacks.iter().map(|stack| stack[stack.len()-1]).collect()
+}
+
+struct Movement {
+    count: u32,
+    source: usize,
+    dest: usize
+}
+
+lazy_static! {
+    static ref MOVEMENT_RE: Regex = Regex::new(r"move (\d+) from (\d+) to (\d+)").unwrap();
+}
+
+impl FromStr for Movement {
+    type Err = &'static str;
+    fn from_str(line: &str) -> Result<Self, Self::Err> {
+        let caps = MOVEMENT_RE.captures(line).ok_or("Movement syntax error")?;
+        let count = caps[1].parse::<u32>().or(Err("Can't parse count"))?;
+        let source = caps[2].parse::<usize>().or(Err("Can't parse source"))?;
+        let dest = caps[3].parse::<usize>().or(Err("Can't parse dest"))?;
+
+        Ok(Movement { count, source, dest })
+    }
+}
+
+fn parse_input(input: &str) -> (Vec<Vec<char>>, Vec<Movement>) {
     // Start by constructing empty stacks.  We examine the length of the
     // first line of input to figure out how many stacks there are.
     // That assumes that those lines are padded with spaces if needed.
@@ -51,28 +93,10 @@ fn part1(input: &str) -> String {
     // Consume the blank line
     assert_eq!(lines.next(), Some(""));
 
-    // Now process the lines telling us how to move items between stacks
-    // We really just need to parse the three numbers on each line.
-    let re = Regex::new(r"move (\d+) from (\d+) to (\d+)").unwrap();
-    for line in lines {
-        let caps = re.captures(line).unwrap();
-        let count = caps[1].parse::<u32>().unwrap();
-        let source = caps[2].parse::<usize>().unwrap();
-        let dest = caps[3].parse::<usize>().unwrap();
+    // Now parse the lines with the movement instructions
+    let movements = lines.map(|line| line.parse().unwrap()).collect();
 
-        for _ in 0..count {
-            let c = stacks[source-1].pop().unwrap();
-            stacks[dest-1].push(c);
-
-            // Note: This doesn't compile:
-            // assert_ne!(source, dest);
-            // stacks[dest].push(stacks[source].pop().unwrap())
-            // because it requires borrowing stacks[] as mutuable twice
-        }
-    }
-
-    // Finally, grab the top letter on each stack
-    stacks.iter().map(|stack| stack[stack.len()-1]).collect()
+    (stacks, movements)
 }
 
 #[cfg(test)]
