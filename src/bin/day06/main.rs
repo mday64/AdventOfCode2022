@@ -12,6 +12,13 @@ fn main() {
     let result1 = find_distinct(&chars, 4).unwrap();
     println!("Part 1: {}", result1);
     assert_eq!(result1, 1804);
+
+    //
+    // Part 2
+    //
+    let result2 = find_distinct(&chars, 14).unwrap();
+    println!("Part 2: {}", result2);
+    assert_eq!(result2, 2508);
 }
 
 //

@@ -48,3 +48,5 @@ Here are the first positions of start-of-message markers for all of the above ex
 * `zcfzfwzzqfrljwzlrfnpqdbhtmscgvjw`: first marker after character **`26`**
 
 **How many characters need to be processed before the first start-of-message marker is detected?**
+
+Your puzzle answer was `2508`.
