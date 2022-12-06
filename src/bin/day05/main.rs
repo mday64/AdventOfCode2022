@@ -54,7 +54,7 @@ fn part2(input: &str) -> String {
 }
 
 struct Movement {
-    count: u32,
+    count: usize,
     source: usize,
     dest: usize
 }
@@ -62,12 +62,14 @@ struct Movement {
 impl FromStr for Movement {
     type Err = &'static str;
     fn from_str(line: &str) -> Result<Self, Self::Err> {
-        let words = line.split(' ').collect::<Vec<_>>();
-        let count = words[1].parse::<u32>().or(Err("Can't parse count"))?;
-        let source = words[3].parse::<usize>().or(Err("Can't parse source"))?;
-        let dest = words[5].parse::<usize>().or(Err("Can't parse dest"))?;
-
-        Ok(Movement { count, source, dest })
+        let numbers = line.split(' ')
+            .filter_map(|word| word.parse::<usize>().ok())
+            .collect::<Vec<_>>();
+        Ok(Movement {
+            count: numbers[0],
+            source: numbers[1],
+            dest: numbers[2]
+        })
     }
 }
 
