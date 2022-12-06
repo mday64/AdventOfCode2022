@@ -87,16 +87,9 @@ fn parse_input(input: &str) -> (Vec<Vec<char>>, Vec<Movement>) {
 
     // Now fill in the stacks
     while line.contains('[') {
-        let mut chars = line.chars();
-        chars.next();       // Skip the leading "["
-        for i in 0..num_stacks {
-            let c = chars.next().unwrap();
-            if c != ' ' {
-                stacks[i].push(c);
-            }
-            chars.next();   // Skip over trailing ']' or space
-            chars.next();   // Skip over space between columns
-            chars.next();   // Skip over leading '[' or space
+        let letters = line.chars().skip(1).step_by(4);
+        for (stack, c) in stacks.iter_mut().zip(letters).filter(|(_,c)| *c != ' ') {
+            stack.push(c);
         }
         line = lines.next().unwrap();
     }
