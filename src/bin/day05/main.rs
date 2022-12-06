@@ -1,6 +1,4 @@
 use std::str::FromStr;
-use regex::Regex;
-use lazy_static::lazy_static;
 
 fn main() {
     let path = std::env::args().skip(1).next()
@@ -61,17 +59,13 @@ struct Movement {
     dest: usize
 }
 
-lazy_static! {
-    static ref MOVEMENT_RE: Regex = Regex::new(r"move (\d+) from (\d+) to (\d+)").unwrap();
-}
-
 impl FromStr for Movement {
     type Err = &'static str;
     fn from_str(line: &str) -> Result<Self, Self::Err> {
-        let caps = MOVEMENT_RE.captures(line).ok_or("Movement syntax error")?;
-        let count = caps[1].parse::<u32>().or(Err("Can't parse count"))?;
-        let source = caps[2].parse::<usize>().or(Err("Can't parse source"))?;
-        let dest = caps[3].parse::<usize>().or(Err("Can't parse dest"))?;
+        let words = line.split(' ').collect::<Vec<_>>();
+        let count = words[1].parse::<u32>().or(Err("Can't parse count"))?;
+        let source = words[3].parse::<usize>().or(Err("Can't parse source"))?;
+        let dest = words[5].parse::<usize>().or(Err("Can't parse dest"))?;
 
         Ok(Movement { count, source, dest })
     }
