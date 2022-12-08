@@ -3,12 +3,17 @@ fn main() {
         .unwrap_or("src/bin/day07/input.txt".into());
     let input = std::fs::read_to_string(path).unwrap();
 
-    let result1 = part1(&input);
+    let totals = totals(&input);
+
+    //
+    // Part 1
+    //
+    let result1: u32 = totals.iter().filter(|v| **v <= 100_000).sum();
     println!("Part 1: {}", result1);
     assert_eq!(result1, 1555642);
 }
 
-fn part1(input: &str) -> u32 {
+fn totals(input: &str) -> Vec<u32> {
     //
     // Part 1
     //
@@ -45,13 +50,13 @@ fn part1(input: &str) -> u32 {
     while let Some(v) = stack.pop() {
         totals.push(v);
     }
-    
-    totals.into_iter().filter(|&v| v <= 100_000).sum()
+
+    totals
 }
 
 #[cfg(test)]
 mod tests {
-    use super::part1;
+    use super::totals;
     const EXAMPLE_INPUT: &str = "\
 $ cd /
 $ ls
@@ -80,6 +85,8 @@ $ ls
 
     #[test]
     fn test_part1() {
-        assert_eq!(part1(EXAMPLE_INPUT), 95437);
+        let totals = totals(EXAMPLE_INPUT);
+        let result1: u32 = totals.iter().filter(|v| **v <= 100_000).sum();
+        assert_eq!(result1, 95437);
     }
 }
