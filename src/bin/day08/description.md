@@ -72,3 +72,4 @@ This tree's scenic score is **`8`** (`2 * 2 * 1 * 2`); this is the ideal spot fo
 
 Consider each tree on your map. **What is the highest scenic score possible for any tree?**
 
+Your puzzle answer was `527340`.
