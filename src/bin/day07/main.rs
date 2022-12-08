@@ -24,29 +24,25 @@ fn main() {
     assert_eq!(result2, 5974547);
 }
 
+//
+// Return the total sizes of all directories.  The size for "/" is last.
+//
 fn totals(input: &str) -> Vec<u32> {
-    //
-    // Part 1
-    //
-    // An interesting puzzle, with a hint of PTSD.  For part 1, I don't
-    // think we need to construct the hierarchy, or even keep track of
-    // directory or file names.
-    //
-
     let mut totals: Vec<u32> = Vec::new();
     let mut stack:Vec<u32> = Vec::new();
     for line in input.lines() {
         if line.starts_with("$ cd") {
             let cd_arg = line.split(' ').skip(2).next().unwrap();
             if cd_arg == ".." {
-                // Exiting current directory
+                // Exit current directory.  Save its total size.
                 totals.push(stack.pop().unwrap());
             } else {
-                // Entering a new directory; don't care about the name
+                // Entering a new directory; don't care about the name.
+                // Initialize the size (so far) to 0.
                 stack.push(0);
             }
         } else {
-            // Try to parse a number at the start of the line
+            // Try to parse a number at the start of the line (i.e. a file size)
             let word = line.split(' ').next().unwrap();
             if let Ok(v) = word.parse::<u32>() {
                 // Add the size of this file to all ancestor directories
