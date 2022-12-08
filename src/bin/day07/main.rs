@@ -11,6 +11,17 @@ fn main() {
     let result1: u32 = totals.iter().filter(|v| **v <= 100_000).sum();
     println!("Part 1: {}", result1);
     assert_eq!(result1, 1555642);
+
+    //
+    // Part 2
+    //
+    let free_space = 70000000 - totals.last().unwrap();
+    let space_needed = 30000000 - free_space;
+    let result2 = *totals.iter()
+        .filter(|v| **v >= space_needed)
+        .min().unwrap();
+    println!("Part 2: {}", result2);
+    assert_eq!(result2, 5974547);
 }
 
 fn totals(input: &str) -> Vec<u32> {
