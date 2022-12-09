@@ -21,32 +21,52 @@ fn main() {
     //
     // The final answer means we need to keep track of visited positions.
     //
+    let result1 = part1(&input);
+    println!("Part 1: {}", result1);
+    assert_eq!(result1, 6486);
+}
+
+fn part1(input: &str) -> usize {
     let mut visited: HashSet<(i32, i32)> = HashSet::new();
-    let mut head_x = 0;
-    let mut head_y = 0;
-    let mut tail_x = 0;
-    let mut tail_y = 0;
     visited.insert((0, 0));
+    let mut rope = vec![(0,0), (0, 0)];
 
     for line in input.lines() {
         let (dir, count) = line.split_once(' ').unwrap();
         let count = count.parse::<i32>().unwrap();
-        match dir {
-            "U" => head_y -= count,
-            "D" => head_y += count,
-            "L" => head_x -= count,
-            "R" => head_x += count,
-            _ => panic!("Invalid movement")
-        }
-
-        // Now move the tail to catch up
-        while (head_x - tail_x).abs() > 1 || (head_y - tail_y).abs() > 1 {
-            tail_x += (head_x - tail_x).signum();
-            tail_y += (head_y - tail_y).signum();
-            visited.insert((tail_x, tail_y));
+        for _ in 0..count {
+            step_head(&mut rope, dir);
+            visited.insert(*rope.last().unwrap());
         }
     }
-    let result1 = visited.len();
-    println!("Part 1: {}", result1);
-    assert_eq!(result1, 6486);
+
+    visited.len()
+}
+
+type Knot = (i32, i32);
+type Rope = Vec<Knot>;
+
+fn step_head(rope: &mut Rope, dir: &str) {
+    // Move the head
+    let (mut head_x, mut head_y) = rope[0];
+    match dir {
+        "U" => head_y -= 1,
+        "D" => head_y += 1,
+        "L" => head_x -= 1,
+        "R" => head_x += 1,
+        _ => panic!("Invalid movement")
+    }
+    rope[0] = (head_x, head_y);
+
+    // Cause the rest of the knots to catch up as needed
+    for i in 0..(rope.len() - 1) {
+        let (head_x, head_y) = rope[i];
+        let (mut tail_x, mut tail_y) = rope[i+1];
+        // Move the next knot to catch up
+        if (head_x - tail_x).abs() > 1 || (head_y - tail_y).abs() > 1 {
+            tail_x += (head_x - tail_x).signum();
+            tail_y += (head_y - tail_y).signum();
+        }
+        rope[i+1] = (tail_x, tail_y);
+    }
 }
