@@ -21,36 +21,19 @@ fn main() {
     //
     // The final answer means we need to keep track of visited positions.
     //
-    let result1 = part1(&input);
+    let result1 = solve(&input, 2);
     println!("Part 1: {}", result1);
     assert_eq!(result1, 6486);
 
-    let result2 = part2(&input);
+    let result2 = solve(&input, 10);
     println!("Part 2: {}", result2);
     assert_eq!(result2, 2678);
 }
 
-fn part1(input: &str) -> usize {
+fn solve(input: &str, rope_size: usize) -> usize {
     let mut visited: HashSet<(i32, i32)> = HashSet::new();
     visited.insert((0, 0));
-    let mut rope = vec![(0,0), (0, 0)];
-
-    for line in input.lines() {
-        let (dir, count) = line.split_once(' ').unwrap();
-        let count = count.parse::<i32>().unwrap();
-        for _ in 0..count {
-            step_head(&mut rope, dir);
-            visited.insert(*rope.last().unwrap());
-        }
-    }
-
-    visited.len()
-}
-
-fn part2(input: &str) -> usize {
-    let mut visited: HashSet<(i32, i32)> = HashSet::new();
-    visited.insert((0, 0));
-    let mut rope = vec![(0,0); 10];
+    let mut rope = vec![(0,0); rope_size];
 
     for line in input.lines() {
         let (dir, count) = line.split_once(' ').unwrap();
