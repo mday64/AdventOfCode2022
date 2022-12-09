@@ -52,25 +52,22 @@ type Rope = Vec<Knot>;
 
 fn step_head(rope: &mut Rope, dir: &str) {
     // Move the head
-    let (mut head_x, mut head_y) = rope[0];
     match dir {
-        "U" => head_y -= 1,
-        "D" => head_y += 1,
-        "L" => head_x -= 1,
-        "R" => head_x += 1,
+        "U" => rope[0].1 -= 1,
+        "D" => rope[0].1 += 1,
+        "L" => rope[0].0 -= 1,
+        "R" => rope[0].0 += 1,
         _ => panic!("Invalid movement")
     }
-    rope[0] = (head_x, head_y);
 
     // Cause the rest of the knots to catch up as needed
     for i in 0..(rope.len() - 1) {
-        let (head_x, head_y) = rope[i];
-        let (mut tail_x, mut tail_y) = rope[i+1];
+        let head = rope[i];
+        let tail = &mut rope[i+1];
         // Move the next knot to catch up
-        if (head_x - tail_x).abs() > 1 || (head_y - tail_y).abs() > 1 {
-            tail_x += (head_x - tail_x).signum();
-            tail_y += (head_y - tail_y).signum();
+        if (head.0 - tail.0).abs() > 1 || (head.1 - tail.1).abs() > 1 {
+            tail.0 += (head.0 - tail.0).signum();
+            tail.1 += (head.1 - tail.1).signum();
         }
-        rope[i+1] = (tail_x, tail_y);
     }
 }
