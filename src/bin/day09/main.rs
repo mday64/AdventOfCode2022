@@ -50,7 +50,7 @@ fn part1(input: &str) -> usize {
 fn part2(input: &str) -> usize {
     let mut visited: HashSet<(i32, i32)> = HashSet::new();
     visited.insert((0, 0));
-    let mut rope = vec![(0,0), (0, 0), (0, 0), (0, 0), (0, 0), (0, 0), (0, 0), (0, 0), (0, 0), (0, 0)];
+    let mut rope = vec![(0,0); 10];
 
     for line in input.lines() {
         let (dir, count) = line.split_once(' ').unwrap();
