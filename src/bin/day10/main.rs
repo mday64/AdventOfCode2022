@@ -1,3 +1,5 @@
+use std::sync::mpsc::{channel, Sender};
+
 fn main() {
     let path = std::env::args().skip(1).next()
         .unwrap_or("src/bin/day10/input.txt".into());
@@ -6,7 +8,7 @@ fn main() {
     //
     // Part 1
     //
-    let result1 = part1(&input);
+    let result1 = part1(input.clone());
     println!("Part 1: {}", result1);
     assert_eq!(result1, 12460);
 
@@ -15,24 +17,30 @@ fn main() {
     //
     // Produces the letters: EZFPRAKL
     //
-    part2(&input);
+    part2(input);
 }
 
-fn part1(input: &str) -> i32 {
+fn part1(input: String) -> i32 {
     let mut result = 0;
-    let x_values = run_program(&input);
-    for i in [20, 60, 100, 140, 180, 220] {
-        result += i as i32 * x_values[i-1];
+    let (tx, rx) = channel();
+    std::thread::spawn(|| run_program(input, tx));
+    for i in 1..=220 {
+        let x = rx.recv().unwrap();
+        if i % 40 == 20 {
+            result += i * x;
+        }
     }
     result
 }
 
-fn part2(input: &str) {
-    let mut x_values = run_program(&input).into_iter();
+fn part2(input: String) {
+    let (tx, rx) = channel();
+    std::thread::spawn(|| run_program(input, tx));
 
     for _ in 0..6 {
         for x in 0..40 {
-            if (x - x_values.next().unwrap()).abs() <= 1 {
+            let xreg = rx.recv().unwrap();
+            if (x - xreg).abs() <= 1 {
                 print!("#");
             } else {
                 print!(" ");
@@ -42,18 +50,22 @@ fn part2(input: &str) {
     }
 }
 
-fn run_program(program: &str) -> Vec<i32> {
-    let mut result = Vec::new();
+fn run_program(program: String, sender: Sender<i32>) {
     let mut x = 1;
     for line in program.lines() {
         if line == "noop" {
-            result.push(x);
+            if sender.send(x).is_err() {
+                break;
+            }
         } else if line.starts_with("addx ") {
             let (_, v) = line.split_once(' ').unwrap();
-            result.push(x);
-            result.push(x);
+            if sender.send(x).is_err() {
+                break;
+            }
+            if sender.send(x).is_err() {
+                break;
+            }
             x += v.parse::<i32>().unwrap();
         }
     }
-    result
 }
