@@ -9,6 +9,13 @@ fn main() {
     let result1 = part1(&input);
     println!("Part 1: {}", result1);
     assert_eq!(result1, 12460);
+
+    //
+    // Part 2
+    //
+    // Produces the letters: EZFPRAKL
+    //
+    part2(&input);
 }
 
 fn part1(input: &str) -> i32 {
@@ -18,6 +25,21 @@ fn part1(input: &str) -> i32 {
         result += i as i32 * x_values[i-1];
     }
     result
+}
+
+fn part2(input: &str) {
+    let mut x_values = run_program(&input).into_iter();
+
+    for _ in 0..6 {
+        for x in 0..40 {
+            if (x - x_values.next().unwrap()).abs() <= 1 {
+                print!("#");
+            } else {
+                print!(" ");
+            }
+        }
+        println!();
+    }
 }
 
 fn run_program(program: &str) -> Vec<i32> {
