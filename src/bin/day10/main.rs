@@ -24,8 +24,7 @@ fn part1(input: String) -> i32 {
     let mut result = 0;
     let (tx, rx) = channel();
     std::thread::spawn(|| run_program(input, tx));
-    for i in 1..=220 {
-        let x = rx.recv().unwrap();
+    for (i,x) in (1..=220).zip(rx.into_iter()) {
         if i % 40 == 20 {
             result += i * x;
         }
