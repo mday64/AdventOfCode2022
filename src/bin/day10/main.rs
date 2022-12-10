@@ -21,7 +21,7 @@ fn main() {
 fn part1(input: &str) -> i32 {
     let mut result = 0;
     let x_values = run_program(&input);
-    for i in [20, 60, 100, 140, 180, 220] {
+    for i in (0..=220).skip(20).step_by(40) {
         result += i as i32 * x_values[i-1];
     }
     result
