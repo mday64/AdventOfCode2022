@@ -23,15 +23,15 @@ fn main() {
 
 fn part1(mut monkeys: Vec<Monkey>) -> u64 {
     let relax = |worry| worry / 3;
-    Monkey::many_rounds(&mut monkeys, 20, relax);
-    Monkey::monkey_business(&monkeys)
+    monkeys.many_rounds(20, relax);
+    monkeys.monkey_business()
 }
 
 fn part2(mut monkeys: Vec<Monkey>) -> u64 {
     let common_modulo: u64 = monkeys.iter().map(|monkey| monkey.modulo).product();
     let relax = |worry| worry % common_modulo;
-    Monkey::many_rounds(&mut monkeys, 10_000, relax);
-    Monkey::monkey_business(&monkeys)
+    monkeys.many_rounds(10_000, relax);
+    monkeys.monkey_business()
 }
 
 #[derive(Clone)]
@@ -95,23 +95,30 @@ impl Monkey {
         self.inspected += 1;
         Some((worry, destination))
     }
+}
 
-    fn one_round(monkeys: &mut [Monkey], relax: impl Fn(u64)->u64) {
-        for i in 0..monkeys.len() {
-            while let Some((worry, destination)) = monkeys[i].throw(&relax) {
-                monkeys[destination].items.push_back(worry);
+trait MonkeyBusiness {
+    fn one_round(&mut self, relax: impl Fn(u64)->u64);
+    fn many_rounds(&mut self, num_rounds: u32, relax: impl Fn(u64)->u64);
+    fn monkey_business(&self) -> u64;
+}
+impl MonkeyBusiness for Vec<Monkey> {
+    fn one_round(&mut self, relax: impl Fn(u64)->u64) {
+        for i in 0..self.len() {
+            while let Some((worry, destination)) = self[i].throw(&relax) {
+                self[destination].items.push_back(worry);
             }
         }
     }
 
-    fn many_rounds(monkeys: &mut [Monkey], num_rounds: u32, relax: impl Fn(u64)->u64) {
+    fn many_rounds(&mut self, num_rounds: u32, relax: impl Fn(u64)->u64) {
         for _ in 0..num_rounds {
-            Monkey::one_round(monkeys, &relax);
+            self.one_round(&relax);
         }
     }
 
-    fn monkey_business(monkeys: &[Monkey]) -> u64 {
-        let mut inspections = monkeys
+    fn monkey_business(&self) -> u64 {
+        let mut inspections = self
             .iter()
             .map(|monkey| monkey.inspected)
             .collect::<Vec<_>>();
@@ -153,7 +160,7 @@ Test: divisible by 17
     let mut monkeys:Vec<Monkey> = input.split("\n\n").map(Monkey::parse).collect();
     let common_modulo: u64 = monkeys.iter().map(|monkey| monkey.modulo).product();
     let relax = |worry| worry % common_modulo;
-    Monkey::many_rounds(&mut monkeys, 20, relax);
+    monkeys.many_rounds(20, relax);
     assert_eq!(
         monkeys
             .iter()
@@ -161,7 +168,7 @@ Test: divisible by 17
             .collect::<Vec<_>>(),
         vec![99, 97, 8, 103]
     );
-    Monkey::many_rounds(&mut monkeys, 980, relax);
+    monkeys.many_rounds(980, relax);
     assert_eq!(
         monkeys
             .iter()
@@ -169,7 +176,7 @@ Test: divisible by 17
             .collect::<Vec<_>>(),
         vec![5204, 4792, 199, 5192]
     );
-    Monkey::many_rounds(&mut monkeys, 9000, relax);
+    monkeys.many_rounds(9000, relax);
     assert_eq!(
         monkeys
             .iter()
@@ -177,5 +184,5 @@ Test: divisible by 17
             .collect::<Vec<_>>(),
         vec![52166, 47830, 1938, 52013]
     );
-    assert_eq!(Monkey::monkey_business(&monkeys), 2713310158);
+    assert_eq!(monkeys.monkey_business(), 2713310158);
 }
