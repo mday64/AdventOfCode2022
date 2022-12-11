@@ -123,8 +123,7 @@ impl MonkeyBusiness for Vec<Monkey> {
             .map(|monkey| monkey.inspected)
             .collect::<Vec<_>>();
         inspections.sort();
-        inspections.reverse();
-        inspections[0] * inspections[1]
+        inspections.iter().rev().take(2).product::<u64>()
     }
 }
 
