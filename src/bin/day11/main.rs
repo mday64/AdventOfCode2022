@@ -1,21 +1,10 @@
 use std::collections::VecDeque;
 
 fn main() {
-    //
-    // Trying to parse the input, especially the "operation", would add
-    // significantly to the difficulty of this problem.  Instead, I'm
-    // going to build them directly in code.
-    //
-    let monkeys = vec![
-        Monkey::new(&[57, 58], Operation::Multiply(19), 7, 2, 3),
-        Monkey::new(&[66, 52, 59, 79, 94, 73], Operation::Add(1), 19, 4, 6),
-        Monkey::new(&[80], Operation::Add(6), 5, 7, 5),
-        Monkey::new(&[82, 81, 68, 66, 71, 83, 75, 97], Operation::Add(5), 11, 5, 2),
-        Monkey::new(&[55, 52, 67, 70, 69, 94, 90], Operation::Square, 17, 0, 3),
-        Monkey::new(&[69, 85, 89, 91], Operation::Add(7), 13, 1, 7),
-        Monkey::new(&[75, 53, 73, 52, 75], Operation::Multiply(7), 2, 0, 4),
-        Monkey::new(&[94, 60, 79], Operation::Add(2), 3, 1, 6),
-    ];
+    let path = std::env::args().skip(1).next()
+        .unwrap_or("src/bin/day11/input.txt".into());
+    let input = std::fs::read_to_string(path).unwrap();
+    let monkeys:Vec<Monkey> = input.split("\n\n").map(Monkey::parse).collect();
 
     //
     // Part 1
@@ -49,6 +38,19 @@ enum Operation {
     Square,
 }
 
+impl Operation {
+    fn parse(s: &str) -> Self {
+        if s == "old * old" {
+            Operation::Square
+        } else if s.starts_with("old * ") {
+            Operation::Multiply(s.rsplit(' ').next().unwrap().parse().unwrap())
+        } else if s.starts_with("old + ") {
+            Operation::Add(s.rsplit(' ').next().unwrap().parse().unwrap())
+        } else {
+            panic!("Unknown operation")
+        }
+    }
+}
 #[derive(Clone)]
 struct Monkey {
     items: VecDeque<u64>,
@@ -60,21 +62,17 @@ struct Monkey {
 }
 
 impl Monkey {
-    fn new(
-        items: &[u64],
-        operation: Operation,
-        modulo: u64,
-        is_divisible: usize,
-        not_divisible: usize,
-    ) -> Self {
-        Self {
-            items: VecDeque::from_iter(items.iter().copied()),
-            operation,
-            modulo,
-            is_divisible,
-            not_divisible,
-            inspected: 0,
-        }
+    fn parse(s: &str) -> Self {
+        let mut lines = s.lines();
+        lines.next();   // Skip "Monkey n:"
+        let (_, items_str) = lines.next().unwrap().split_once(": ").unwrap();
+        let items = VecDeque::from_iter(items_str.split(", ").map(|v| v.parse().unwrap()));
+        let (_, op_str) = lines.next().unwrap().split_once("new = ").unwrap();
+        let operation = Operation::parse(op_str);
+        let modulo = lines.next().unwrap().rsplit(' ').next().unwrap().parse::<u64>().unwrap();
+        let is_divisible = lines.next().unwrap().rsplit(' ').next().unwrap().parse::<usize>().unwrap();
+        let not_divisible = lines.next().unwrap().rsplit(' ').next().unwrap().parse::<usize>().unwrap();
+        Self { items, operation: operation, modulo, is_divisible, not_divisible, inspected: 0 }
     }
 
     fn throw(&mut self, relief: bool, common_modulo: u64) -> Option<(u64, usize)> {
@@ -126,12 +124,34 @@ impl Monkey {
 
 #[test]
 fn test_rounds_part2() {
-    let mut monkeys = vec![
-        Monkey::new(&[79, 98], Operation::Multiply(19), 23, 2, 3),
-        Monkey::new(&[54, 65, 75, 74], Operation::Add(6), 19, 2, 0),
-        Monkey::new(&[79, 60, 97], Operation::Square, 13, 1, 3),
-        Monkey::new(&[74], Operation::Add(3), 17, 0, 1),
-    ];
+    let input = "Monkey 0:
+Starting items: 79, 98
+Operation: new = old * 19
+Test: divisible by 23
+    If true: throw to monkey 2
+    If false: throw to monkey 3
+
+Monkey 1:
+Starting items: 54, 65, 75, 74
+Operation: new = old + 6
+Test: divisible by 19
+    If true: throw to monkey 2
+    If false: throw to monkey 0
+
+Monkey 2:
+Starting items: 79, 60, 97
+Operation: new = old * old
+Test: divisible by 13
+    If true: throw to monkey 1
+    If false: throw to monkey 3
+
+Monkey 3:
+Starting items: 74
+Operation: new = old + 3
+Test: divisible by 17
+    If true: throw to monkey 0
+    If false: throw to monkey 1";
+    let mut monkeys:Vec<Monkey> = input.split("\n\n").map(Monkey::parse).collect();
     Monkey::many_rounds(&mut monkeys, 20, false);
     assert_eq!(
         monkeys
