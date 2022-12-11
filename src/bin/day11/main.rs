@@ -58,18 +58,12 @@ fn main() {
 
 fn part1(mut monkeys: Vec<Monkey>) -> u64 {
     Monkey::many_rounds(&mut monkeys, 20, true);
-    let mut inspections = monkeys.iter().map(|monkey| monkey.inspected).collect::<Vec<_>>();
-    inspections.sort();
-    inspections.reverse();
-    inspections[0] * inspections[1]
+    Monkey::monkey_business(&monkeys)
 }
 
 fn part2(mut monkeys: Vec<Monkey>) -> u64 {
     Monkey::many_rounds(&mut monkeys, 10_000, false);
-    let mut inspections = monkeys.iter().map(|monkey| monkey.inspected).collect::<Vec<_>>();
-    inspections.sort();
-    inspections.reverse();
-    inspections[0] * inspections[1]
+    Monkey::monkey_business(&monkeys)
 }
 
 #[derive(Clone)]
@@ -119,6 +113,13 @@ impl<'a> Monkey<'a> {
             Monkey::one_round(monkeys, relief, common_modulo);
         }
     }
+
+    fn monkey_business(monkeys: &[Monkey]) -> u64 {
+        let mut inspections = monkeys.iter().map(|monkey| monkey.inspected).collect::<Vec<_>>();
+        inspections.sort();
+        inspections.reverse();
+        inspections[0] * inspections[1]
+    }
 }
 
 #[test]
@@ -135,4 +136,5 @@ fn test_rounds_part2() {
     assert_eq!(monkeys.iter().map(|monkey| monkey.inspected).collect::<Vec<_>>(), vec![5204, 4792, 199, 5192]);
     Monkey::many_rounds(&mut monkeys, 9000, false);
     assert_eq!(monkeys.iter().map(|monkey| monkey.inspected).collect::<Vec<_>>(), vec![52166, 47830, 1938, 52013]);
+    assert_eq!(Monkey::monkey_business(&monkeys), 2713310158);
 }
