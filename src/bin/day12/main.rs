@@ -18,17 +18,13 @@ fn main() {
 fn part1(input: &str) -> i32 {
     let input = parse_input(input);
     let successors = |node: &Coord| {
-        let current_height = input.heights[node];
-        let mut result = Vec::new();
-        //TODO: Use filter_map?
-        for other in node.neighbors() {
-            if let Some(other_height) = input.heights.get(&other) {
-                if *other_height <= current_height + 1 {
-                    result.push((other, 1));
-                }
+        node.neighbors().into_iter().filter_map(|other|
+            if *input.heights.get(&other)? <= input.heights[node] + 1 {
+                Some((other, 1))
+            } else {
+                None
             }
-        }
-        result    
+        ).collect::<Vec<(Coord, i32)>>()
     };
     let heuristic = |node: &Coord| {
             (node.0 - input.ending_point.0).abs() +
@@ -51,16 +47,10 @@ fn part2(input: &str) -> usize {
     let input = parse_input(input);
     let success = |node: &Coord| input.heights[node] == 0;
     let successors = |node: &Coord| {
-        let current_height = input.heights[node];
-        let mut result = Vec::new();
-        for other in node.neighbors() {
-            if let Some(other_height) = input.heights.get(&other) {
-                if *other_height >= current_height - 1 {
-                    result.push(other);
-                }
-            }
-        }
-        result
+        node.neighbors().into_iter().filter(|other|
+            input.heights.contains_key(other) &&
+            input.heights[other] >= input.heights[node] - 1
+        ).collect::<Vec<Coord>>()
     };
     bfs(&input.ending_point, successors, success).unwrap().len() - 1
 }
