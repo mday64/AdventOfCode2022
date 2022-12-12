@@ -57,3 +57,5 @@ Now, there are six choices for starting position (five marked `a`, plus the squa
 This path reaches the goal in only **`29`** steps, the fewest possible.
 
 **What is the fewest steps required to move starting from any square with elevation `a` to the location that should get the best signal?**
+
+Your puzzle answer was 500.

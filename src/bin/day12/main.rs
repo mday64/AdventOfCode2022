@@ -12,11 +12,11 @@ fn main() {
 
     let result2 = part2(&input);
     println!("Part 2: {}", result2);
-    assert_eq!(result2, 0);
+    assert_eq!(result2, 500);
 }
 
 fn part1(input: &str) -> i32 {
-    let input = parse_input(&input);
+    let input = parse_input(input);
     astar(
         &input.starting_point,
         |node| input.neighbors(node),
@@ -36,23 +36,28 @@ fn part1(input: &str) -> i32 {
 //
 fn part2(input: &str) -> usize {
     let input = parse_input(input);
-    let success = |node| input.heights[node] == 0;
-    let neighbors = |node| {
-        let current_height = input.heights[node];
+    let puzzle = Part2(input);
+    let success = |node: &Coord| puzzle.0.heights[node] == 0;
+    let neighbors = |node: &Coord| puzzle.neighbors(node);
+    bfs(&puzzle.0.ending_point, neighbors, success).unwrap().len() - 1
+}
+
+struct Part2(Input);
+impl Part2 {
+    fn neighbors(&self, node: &Coord) -> Vec<Coord> {
+        let current_height = self.0.heights[node];
         let mut result = Vec::new();
         let others = [(node.0-1, node.1), (node.0+1, node.1), (node.0, node.1-1), (node.0, node.1+1)];
         for other in others {
-            if let Some(other_height) = input.heights.get(&other) {
+            if let Some(other_height) = self.0.heights.get(&other) {
                 if *other_height >= current_height - 1 {
                     result.push(other);
                 }
             }
         }
         result
-    };
-    bfs(&input.ending_point, neighbors, success).unwrap().len()
+    }
 }
-
 // The input could be represented as a 2-D array of heights,
 // but a HashMap makes it a little easier to deal with edges
 // (where some potential neighbor coordinates are not valid).
