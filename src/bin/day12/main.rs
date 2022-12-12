@@ -1,17 +1,18 @@
 use std::collections::HashMap;
-use pathfinding::directed::astar::astar;
+use pathfinding::directed::{astar::astar, bfs::bfs};
 
 fn main() {
     let path = std::env::args().skip(1).next()
         .unwrap_or("src/bin/day12/input.txt".into());
     let input = std::fs::read_to_string(path).unwrap();
 
-    //
-    // Part 1
-    //
     let result1 = part1(&input);
     println!("Part 1: {}", result1);
     assert_eq!(result1, 504);
+
+    let result2 = part2(&input);
+    println!("Part 2: {}", result2);
+    assert_eq!(result2, 0);
 }
 
 fn part1(input: &str) -> i32 {
@@ -22,6 +23,34 @@ fn part1(input: &str) -> i32 {
         |node| input.heuristic(node),
         |node| node == &input.ending_point
     ).unwrap().1
+}
+
+//
+// Part 2
+//
+// I'm guessing that we can path find from the ending coordinate, to
+// any square with a height of `a` (0).  We'll need to adjust the
+// logic in the neighbors callback, as well as the success callback.
+// Also, since we don't have a specific desintation in mind, I think
+// we need to use BFS.
+//
+fn part2(input: &str) -> usize {
+    let input = parse_input(input);
+    let success = |node| input.heights[node] == 0;
+    let neighbors = |node| {
+        let current_height = input.heights[node];
+        let mut result = Vec::new();
+        let others = [(node.0-1, node.1), (node.0+1, node.1), (node.0, node.1-1), (node.0, node.1+1)];
+        for other in others {
+            if let Some(other_height) = input.heights.get(&other) {
+                if *other_height >= current_height - 1 {
+                    result.push(other);
+                }
+            }
+        }
+        result
+    };
+    bfs(&input.ending_point, neighbors, success).unwrap().len()
 }
 
 // The input could be represented as a 2-D array of heights,
@@ -90,4 +119,10 @@ impl Input {
 fn test_part1() {
     let input = "Sabqponm\nabcryxxl\naccszExk\nacctuvwj\nabdefghi\n";
     assert_eq!(part1(input), 31);
+}
+
+#[test]
+fn test_part2() {
+    let input = "Sabqponm\nabcryxxl\naccszExk\nacctuvwj\nabdefghi\n";
+    assert_eq!(part2(input), 29);
 }
