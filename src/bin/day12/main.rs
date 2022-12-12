@@ -17,12 +17,25 @@ fn main() {
 
 fn part1(input: &str) -> i32 {
     let input = parse_input(input);
-    astar(
-        &input.starting_point,
-        |node| input.neighbors(node),
-        |node| input.heuristic(node),
-        |node| node == &input.ending_point
-    ).unwrap().1
+    let successors = |node: &Coord| {
+        let current_height = input.heights[node];
+        let mut result = Vec::new();
+        //TODO: Use filter_map?
+        for other in node.neighbors() {
+            if let Some(other_height) = input.heights.get(&other) {
+                if *other_height <= current_height + 1 {
+                    result.push((other, 1));
+                }
+            }
+        }
+        result    
+    };
+    let heuristic = |node: &Coord| {
+            (node.0 - input.ending_point.0).abs() +
+            (node.1 - input.ending_point.1).abs()
+    };
+    let success = |node: &Coord| node == &input.ending_point;
+    astar(&input.starting_point, successors, heuristic, success).unwrap().1
 }
 
 //
@@ -36,32 +49,35 @@ fn part1(input: &str) -> i32 {
 //
 fn part2(input: &str) -> usize {
     let input = parse_input(input);
-    let puzzle = Part2(input);
-    let success = |node: &Coord| puzzle.0.heights[node] == 0;
-    let neighbors = |node: &Coord| puzzle.neighbors(node);
-    bfs(&puzzle.0.ending_point, neighbors, success).unwrap().len() - 1
-}
-
-struct Part2(Input);
-impl Part2 {
-    fn neighbors(&self, node: &Coord) -> Vec<Coord> {
-        let current_height = self.0.heights[node];
+    let success = |node: &Coord| input.heights[node] == 0;
+    let successors = |node: &Coord| {
+        let current_height = input.heights[node];
         let mut result = Vec::new();
-        let others = [(node.0-1, node.1), (node.0+1, node.1), (node.0, node.1-1), (node.0, node.1+1)];
-        for other in others {
-            if let Some(other_height) = self.0.heights.get(&other) {
+        for other in node.neighbors() {
+            if let Some(other_height) = input.heights.get(&other) {
                 if *other_height >= current_height - 1 {
                     result.push(other);
                 }
             }
         }
         result
-    }
+    };
+    bfs(&input.ending_point, successors, success).unwrap().len() - 1
 }
+
 // The input could be represented as a 2-D array of heights,
 // but a HashMap makes it a little easier to deal with edges
 // (where some potential neighbor coordinates are not valid).
 type Coord = (i32, i32);
+trait Neighbors<T> {
+    fn neighbors(&self) -> Vec<T>;
+}
+impl Neighbors<Coord> for Coord {
+    fn neighbors(&self) -> Vec<Coord> {
+        let &(row, col) = self;
+        vec![(row-1, col), (row+1, col), (row, col-1), (row, col+1)]
+    }
+}
 struct Input {
     starting_point: Coord,
     ending_point: Coord,
@@ -97,26 +113,6 @@ fn parse_input(input: &str) -> Input {
         starting_point: starting_point.unwrap(),
         ending_point: ending_point.unwrap(),
         heights
-    }
-}
-
-impl Input {
-    fn neighbors(&self, node: &Coord) -> Vec<(Coord, i32)> {
-        let (row, col) = *node;
-        let current_height = self.heights[node];
-        let mut result = Vec::new();
-        //TODO: Use filter_map?
-        for other in [(row-1, col), (row+1, col), (row, col-1), (row, col+1)] {
-            if let Some(other_height) = self.heights.get(&other) {
-                if *other_height <= current_height + 1 {
-                    result.push((other, 1));
-                }
-            }
-        }
-        result
-    }
-    fn heuristic(&self, node: &Coord) -> i32 {
-        (node.0 - self.ending_point.0).abs() + (node.1 - self.ending_point.1).abs()
     }
 }
 
