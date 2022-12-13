@@ -53,6 +53,7 @@ impl Node {
         }
     }
 
+    #[allow(dead_code)]
     fn is_number(&self) -> bool {
         match self {
             Node::List(_) => false,
