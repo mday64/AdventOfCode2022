@@ -10,6 +10,10 @@ fn main() {
     let result1 = part1(&input);
     println!("Part 1: {}", result1);
     assert_eq!(result1, 5252);
+
+    let result2 = part2(&input);
+    println!("Part 2: {}", result2);
+    assert_eq!(result2, 20592);
 }
 
 fn part1(input: &str) -> usize {
@@ -20,6 +24,19 @@ fn part1(input: &str) -> usize {
         let right = parse_packet(right);
         if left < right { Some(i) } else { None }
     }).sum()
+}
+
+fn part2(input: &str) -> usize {
+    let mut packets = input.lines()
+        .filter(|line| line.len() > 0)
+        .map(|line| parse_packet(line))
+        .collect::<Vec<_>>();
+    packets.push(parse_packet("[[2]]"));
+    packets.push(parse_packet("[[6]]"));
+    packets.sort();
+    let packet2 = packets.iter().position(|packet| packet == &parse_packet("[[2]]")).unwrap();
+    let packet6 = packets.iter().position(|packet| packet == &parse_packet("[[6]]")).unwrap();
+    (packet2 + 1) * (packet6 + 1)
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -218,4 +235,35 @@ fn test_part1() {
 [1,[2,[3,[4,[5,6,0]]]],8,9]
 ";
     assert_eq!(part1(input), 13);
+}
+
+
+#[test]
+fn test_part2() {
+    let input = "\
+[1,1,3,1,1]
+[1,1,5,1,1]
+
+[[1],[2,3,4]]
+[[1],4]
+
+[9]
+[[8,7,6]]
+
+[[4,4],4,4]
+[[4,4],4,4,4]
+
+[7,7,7,7]
+[7,7,7]
+
+[]
+[3]
+
+[[[]]]
+[[]]
+
+[1,[2,[3,[4,[5,6,7]]]],8,9]
+[1,[2,[3,[4,[5,6,0]]]],8,9]
+";
+    assert_eq!(part2(input), 140);
 }
