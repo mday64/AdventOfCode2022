@@ -7,9 +7,22 @@ fn main() {
         .unwrap_or("src/bin/day13/input.txt".into());
     let input = std::fs::read_to_string(path).unwrap();
 
+    let result1 = part1(&input);
+    println!("Part 1: {}", result1);
+    assert_eq!(result1, 5252);
 }
 
-#[derive(Debug)]
+fn part1(input: &str) -> usize {
+    let pairs = input.trim_end().split("\n\n");
+    std::iter::zip(1.., pairs).filter_map(|(i,pair)| {
+        let (left, right) = pair.split_once("\n").unwrap();
+        let left = parse_packet(left);
+        let right = parse_packet(right);
+        if left < right { Some(i) } else { None }
+    }).sum()
+}
+
+#[derive(Debug, PartialEq, Eq)]
 enum Node {
     List(Vec<Box<Node>>),
     Number(u32)
@@ -48,6 +61,38 @@ impl Display for Node {
                     needs_comma = true;
                 }
                 write!(f, "]")
+            }
+        }
+    }
+}
+
+impl PartialOrd for Node {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+impl Ord for Node {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        match self {
+            Node::Number(num) => {
+                match other {
+                    Node::Number(other_num) => {
+                        num.cmp(other_num)
+                    },
+                    Node::List(_) => {
+                        Node::List(vec![Box::new(Node::Number(*num))]).cmp(other)
+                    }
+                }
+            },
+            Node::List(list) => {
+                match other {
+                    Node::List(other_list) => {
+                        list.cmp(other_list)
+                    },
+                    Node::Number(other_num) => {
+                        self.cmp(&Node::List(vec![Box::new(Node::Number(*other_num))]))
+                    }
+                }
             }
         }
     }
@@ -124,4 +169,53 @@ fn test_parse_nested_empty_lists() {
     let line = "[[[]],[]]";
     let node = parse_packet(line);
     assert_eq!(node.to_string(), line);
+}
+
+#[test]
+fn test_cmp_numbers() {
+    assert!(Node::Number(3) < Node::Number(4));
+    assert!(Node::Number(4) == Node::Number(4));
+    assert!(Node::Number(5) > Node::Number(4));
+}
+
+#[test]
+fn test_cmp_lists() {
+    assert!(parse_packet("[1,1,3,1,1]") < parse_packet("[1,1,5,1,1]"));
+    assert!(parse_packet("[[1],[2,3,4]]") < parse_packet("[[1],4]"));
+    assert!(parse_packet("[9]") > parse_packet("[[8,7,6]]"));
+    assert!(parse_packet("[[4,4],4,4]") < parse_packet("[[4,4],4,4,4]"));
+    assert!(parse_packet("[7,7,7,7]") > parse_packet("[7,7,7]"));
+    assert!(parse_packet("[]") < parse_packet("[3]"));
+    assert!(parse_packet("[[[]]]") > parse_packet("[[]]"));
+    assert!(parse_packet("[1,[2,[3,[4,[5,6,7]]]],8,9]") > parse_packet("[1,[2,[3,[4,[5,6,0]]]],8,9]"));
+}
+
+#[test]
+fn test_part1() {
+    let input = "\
+[1,1,3,1,1]
+[1,1,5,1,1]
+
+[[1],[2,3,4]]
+[[1],4]
+
+[9]
+[[8,7,6]]
+
+[[4,4],4,4]
+[[4,4],4,4,4]
+
+[7,7,7,7]
+[7,7,7]
+
+[]
+[3]
+
+[[[]]]
+[[]]
+
+[1,[2,[3,[4,[5,6,7]]]],8,9]
+[1,[2,[3,[4,[5,6,0]]]],8,9]
+";
+    assert_eq!(part1(input), 13);
 }
