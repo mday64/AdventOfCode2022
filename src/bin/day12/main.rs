@@ -43,7 +43,7 @@ fn part1(input: &str) -> i32 {
 //
 fn part2(input: &str) -> usize {
     let input = parse_input(input);
-    let success = |node: &Coord| input.heights[node] == 0;
+    let success = |node: &Coord| input.heights[node] == 'a' as u32;
     let successors = |node: &Coord| {
         let node_height = input.heights[node];
         input.neighbors(node).into_iter()
@@ -82,15 +82,15 @@ fn parse_input(input: &str) -> Input {
             let col = col as i32;
             match ch {
                 'S' => {
-                    heights.insert((row, col), 0);
+                    heights.insert((row, col), 'a' as u32);
                     starting_point = Some((row, col));
                 },
                 'E' => {
-                    heights.insert((row, col), 25);
+                    heights.insert((row, col), 'z' as u32);
                     ending_point = Some((row, col));
                 },
                 'a'..='z' => {
-                    heights.insert((row, col), ch as u32 - 'a' as u32);
+                    heights.insert((row, col), ch as u32);
                 }
                 _ => panic!("Invalid input")
             }
@@ -105,7 +105,7 @@ fn parse_input(input: &str) -> Input {
 }
 
 impl Input {
-    fn neighbors(&self, node: &Coord) -> Vec<(Coord)> {
+    fn neighbors(&self, node: &Coord) -> Vec<Coord> {
         node.neighbors().into_iter().filter(|other|
             self.heights.contains_key(&other)
         ).collect()
