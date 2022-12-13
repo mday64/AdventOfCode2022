@@ -41,7 +41,7 @@ fn part2(input: &str) -> usize {
 
 #[derive(Debug, PartialEq, Eq)]
 enum Node {
-    List(Vec<Box<Node>>),
+    List(Vec<Node>),
     Number(u32)
 }
 
@@ -97,7 +97,7 @@ impl Ord for Node {
                         num.cmp(other_num)
                     },
                     Node::List(_) => {
-                        Node::List(vec![Box::new(Node::Number(*num))]).cmp(other)
+                        Node::List(vec![Node::Number(*num)]).cmp(other)
                     }
                 }
             },
@@ -107,7 +107,7 @@ impl Ord for Node {
                         list.cmp(other_list)
                     },
                     Node::Number(other_num) => {
-                        self.cmp(&Node::List(vec![Box::new(Node::Number(*other_num))]))
+                        self.cmp(&Node::List(vec![Node::Number(*other_num)]))
                     }
                 }
             }
@@ -123,7 +123,7 @@ fn parse_node(s: &mut Peekable<Chars>) -> Node {
         while s.peek() != Some(&']') {
             // Parse a Node
             let node = parse_node(s);
-            list.push(Box::new(node));
+            list.push(node);
 
             // Consume a comma, if any
             if s.peek() == Some(&',') {
@@ -162,6 +162,11 @@ fn test_parse_list_of_five_numbers() {
     match &node {
         Node::List(list) => {
             assert_eq!(list.len(), 5);
+            assert_eq!(list[0], Node::Number(1));
+            assert_eq!(list[1], Node::Number(2));
+            assert_eq!(list[2], Node::Number(3));
+            assert_eq!(list[3], Node::Number(4));
+            assert_eq!(list[4], Node::Number(5));
         },
         Node::Number(_) => panic!("expected list")
     }
