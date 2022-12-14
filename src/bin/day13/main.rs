@@ -1,9 +1,12 @@
+use nom::{
+    branch::alt, bytes::complete::tag, multi::separated_list0, sequence::delimited, IResult, Parser,
+};
 use std::fmt::Display;
-use std::iter::Peekable;
-use std::str::Chars;
 
 fn main() {
-    let path = std::env::args().skip(1).next()
+    let path = std::env::args()
+        .skip(1)
+        .next()
         .unwrap_or("src/bin/day13/input.txt".into());
     let input = std::fs::read_to_string(path).unwrap();
 
@@ -18,38 +21,51 @@ fn main() {
 
 fn part1(input: &str) -> usize {
     let pairs = input.trim_end().split("\n\n");
-    std::iter::zip(1.., pairs).filter_map(|(i,pair)| {
-        let (left, right) = pair.split_once("\n").unwrap();
-        let left = parse_packet(left);
-        let right = parse_packet(right);
-        if left < right { Some(i) } else { None }
-    }).sum()
+    std::iter::zip(1.., pairs)
+        .filter_map(|(i, pair)| {
+            let (left, right) = pair.split_once("\n").unwrap();
+            let left = parse_packet(left);
+            let right = parse_packet(right);
+            if left < right {
+                Some(i)
+            } else {
+                None
+            }
+        })
+        .sum()
 }
 
 fn part2(input: &str) -> usize {
-    let mut packets = input.lines()
+    let mut packets = input
+        .lines()
         .filter(|line| line.len() > 0)
         .map(|line| parse_packet(line))
         .collect::<Vec<_>>();
     packets.push(parse_packet("[[2]]"));
     packets.push(parse_packet("[[6]]"));
     packets.sort();
-    let packet2 = packets.iter().position(|packet| packet == &parse_packet("[[2]]")).unwrap();
-    let packet6 = packets.iter().position(|packet| packet == &parse_packet("[[6]]")).unwrap();
+    let packet2 = packets
+        .iter()
+        .position(|packet| packet == &parse_packet("[[2]]"))
+        .unwrap();
+    let packet6 = packets
+        .iter()
+        .position(|packet| packet == &parse_packet("[[6]]"))
+        .unwrap();
     (packet2 + 1) * (packet6 + 1)
 }
 
 #[derive(Debug, PartialEq, Eq)]
 enum Node {
     List(Vec<Node>),
-    Number(u32)
+    Number(u32),
 }
 
 impl Node {
     fn is_list(&self) -> bool {
         match self {
             Node::List(_) => true,
-            Node::Number(_) => false
+            Node::Number(_) => false,
         }
     }
 
@@ -57,7 +73,7 @@ impl Node {
     fn is_number(&self) -> bool {
         match self {
             Node::List(_) => false,
-            Node::Number(_) => true
+            Node::Number(_) => true,
         }
     }
 }
@@ -67,7 +83,7 @@ impl Display for Node {
         match self {
             Node::Number(num) => {
                 write!(f, "{}", num)
-            },
+            }
             Node::List(list) => {
                 let mut needs_comma = false;
                 write!(f, "[")?;
@@ -92,67 +108,29 @@ impl PartialOrd for Node {
 impl Ord for Node {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
         match self {
-            Node::Number(num) => {
-                match other {
-                    Node::Number(other_num) => {
-                        num.cmp(other_num)
-                    },
-                    Node::List(_) => {
-                        Node::List(vec![Node::Number(*num)]).cmp(other)
-                    }
-                }
+            Node::Number(num) => match other {
+                Node::Number(other_num) => num.cmp(other_num),
+                Node::List(_) => Node::List(vec![Node::Number(*num)]).cmp(other),
             },
-            Node::List(list) => {
-                match other {
-                    Node::List(other_list) => {
-                        list.cmp(other_list)
-                    },
-                    Node::Number(other_num) => {
-                        self.cmp(&Node::List(vec![Node::Number(*other_num)]))
-                    }
-                }
-            }
+            Node::List(list) => match other {
+                Node::List(other_list) => list.cmp(other_list),
+                Node::Number(other_num) => self.cmp(&Node::List(vec![Node::Number(*other_num)])),
+            },
         }
     }
 }
 
-fn parse_node(s: &mut Peekable<Chars>) -> Node {
-    if s.peek() == Some(&'[') {
-        // Parse a list
-        let mut list = Vec::new();
-        s.next();       // Consume the open square bracket
-        while s.peek() != Some(&']') {
-            // Parse a Node
-            let node = parse_node(s);
-            list.push(node);
-
-            // Consume a comma, if any
-            if s.peek() == Some(&',') {
-                s.next();
-            }
-        }
-        // Consume closing square backet
-        assert_eq!(s.next(), Some(']'));
-        Node::List(list)
-    } else {
-        // Pase a number
-        let mut num = 0;
-        while let Some(c) = s.peek() {
-            if c.is_digit(10) {
-                num = num * 10 + s.next().unwrap().to_digit(10).unwrap();
-            } else {
-                break;
-            }
-        }
-        Node::Number(num)
-    }
+fn parse_node(input: &str) -> IResult<&str, Node> {
+    alt((
+        delimited(tag("["), separated_list0(tag(","), parse_node), tag("]"))
+            .map(|vec| Node::List(vec)),
+        nom::character::complete::u32.map(|num| Node::Number(num)),
+    ))(input)
 }
 
-fn parse_packet(line: &str) -> Node {
-    let mut chars = line.chars().peekable();
-    let node = parse_node(&mut chars);
-    assert!(node.is_list());
-    assert_eq!(chars.peek(), None);
+fn parse_packet(input: &str) -> Node {
+    let (remaining, node) = parse_node(input).unwrap();
+    assert_eq!(remaining, "");
     node
 }
 
@@ -168,8 +146,8 @@ fn test_parse_list_of_five_numbers() {
             assert_eq!(list[2], Node::Number(3));
             assert_eq!(list[3], Node::Number(4));
             assert_eq!(list[4], Node::Number(5));
-        },
-        Node::Number(_) => panic!("expected list")
+        }
+        Node::Number(_) => panic!("expected list"),
     }
     assert_eq!(node.to_string(), line);
 }
@@ -181,8 +159,8 @@ fn test_parse_nested_list_of_numbers() {
     match &node {
         Node::List(list) => {
             assert_eq!(list.len(), 2);
-        },
-        Node::Number(_) => panic!("expected list")
+        }
+        Node::Number(_) => panic!("expected list"),
     }
     assert_eq!(node.to_string(), line);
 }
@@ -242,7 +220,6 @@ fn test_part1() {
 ";
     assert_eq!(part1(input), 13);
 }
-
 
 #[test]
 fn test_part2() {
