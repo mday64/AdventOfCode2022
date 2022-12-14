@@ -61,23 +61,6 @@ enum Node {
     Number(u32),
 }
 
-impl Node {
-    fn is_list(&self) -> bool {
-        match self {
-            Node::List(_) => true,
-            Node::Number(_) => false,
-        }
-    }
-
-    #[allow(dead_code)]
-    fn is_number(&self) -> bool {
-        match self {
-            Node::List(_) => false,
-            Node::Number(_) => true,
-        }
-    }
-}
-
 impl Display for Node {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -134,74 +117,75 @@ fn parse_packet(input: &str) -> Node {
     node
 }
 
-#[test]
-fn test_parse_list_of_five_numbers() {
+#[cfg(test)]
+mod tests {
+    use super::*;
     use Node::*;
-    let line = "[1,2,3,4,5]";
-    let node = parse_packet(line);
-    assert_eq!(
-        node,
-        List(vec![Number(1), Number(2), Number(3), Number(4), Number(5)])
-    );
-    assert_eq!(node.to_string(), line);
-}
 
-#[test]
-fn test_parse_nested_list_of_numbers() {
-    use Node::*;
-    let line = "[[1],[2,3,4]]";
-    let node = parse_packet(line);
-    assert_eq!(
-        node,
-        List(vec![
-            List(vec![Number(1)]),
-            List(vec![Number(2), Number(3), Number(4)])
-        ])
-    );
-    assert_eq!(node.to_string(), line);
-}
-
-#[test]
-fn test_parse_nested_empty_lists() {
-    use Node::*;
-    let line = "[[[]],[]]";
-    let node = parse_packet(line);
-    assert_eq!(
-        node,
-        List(vec![
+    #[test]
+    fn test_parse_list_of_five_numbers() {
+        let line = "[1,2,3,4,5]";
+        let node = parse_packet(line);
+        assert_eq!(
+            node,
+            List(vec![Number(1), Number(2), Number(3), Number(4), Number(5)])
+        );
+        assert_eq!(node.to_string(), line);
+    }
+    
+    #[test]
+    fn test_parse_nested_list_of_numbers() {
+        let line = "[[1],[2,3,4]]";
+        let node = parse_packet(line);
+        assert_eq!(
+            node,
             List(vec![
+                List(vec![Number(1)]),
+                List(vec![Number(2), Number(3), Number(4)])
+            ])
+        );
+        assert_eq!(node.to_string(), line);
+    }
+    
+    #[test]
+    fn test_parse_nested_empty_lists() {
+        use Node::*;
+        let line = "[[[]],[]]";
+        let node = parse_packet(line);
+        assert_eq!(
+            node,
+            List(vec![
+                List(vec![
+                    List(vec![])
+                ]),
                 List(vec![])
-            ]),
-            List(vec![])
-        ])
-    );
-    assert_eq!(node.to_string(), line);
-}
-
-#[test]
-fn test_cmp_numbers() {
-    assert!(Node::Number(3) < Node::Number(4));
-    assert!(Node::Number(4) == Node::Number(4));
-    assert!(Node::Number(5) > Node::Number(4));
-}
-
-#[test]
-fn test_cmp_lists() {
-    assert!(parse_packet("[1,1,3,1,1]") < parse_packet("[1,1,5,1,1]"));
-    assert!(parse_packet("[[1],[2,3,4]]") < parse_packet("[[1],4]"));
-    assert!(parse_packet("[9]") > parse_packet("[[8,7,6]]"));
-    assert!(parse_packet("[[4,4],4,4]") < parse_packet("[[4,4],4,4,4]"));
-    assert!(parse_packet("[7,7,7,7]") > parse_packet("[7,7,7]"));
-    assert!(parse_packet("[]") < parse_packet("[3]"));
-    assert!(parse_packet("[[[]]]") > parse_packet("[[]]"));
-    assert!(
-        parse_packet("[1,[2,[3,[4,[5,6,7]]]],8,9]") > parse_packet("[1,[2,[3,[4,[5,6,0]]]],8,9]")
-    );
-}
-
-#[test]
-fn test_part1() {
-    let input = "\
+            ])
+        );
+        assert_eq!(node.to_string(), line);
+    }
+    
+    #[test]
+    fn test_cmp_numbers() {
+        assert!(Node::Number(3) < Node::Number(4));
+        assert!(Node::Number(4) == Node::Number(4));
+        assert!(Node::Number(5) > Node::Number(4));
+    }
+    
+    #[test]
+    fn test_cmp_lists() {
+        assert!(parse_packet("[1,1,3,1,1]") < parse_packet("[1,1,5,1,1]"));
+        assert!(parse_packet("[[1],[2,3,4]]") < parse_packet("[[1],4]"));
+        assert!(parse_packet("[9]") > parse_packet("[[8,7,6]]"));
+        assert!(parse_packet("[[4,4],4,4]") < parse_packet("[[4,4],4,4,4]"));
+        assert!(parse_packet("[7,7,7,7]") > parse_packet("[7,7,7]"));
+        assert!(parse_packet("[]") < parse_packet("[3]"));
+        assert!(parse_packet("[[[]]]") > parse_packet("[[]]"));
+        assert!(
+            parse_packet("[1,[2,[3,[4,[5,6,7]]]],8,9]") > parse_packet("[1,[2,[3,[4,[5,6,0]]]],8,9]")
+        );
+    }
+    
+    const TEST_INPUT: &str = "\
 [1,1,3,1,1]
 [1,1,5,1,1]
 
@@ -226,35 +210,15 @@ fn test_part1() {
 [1,[2,[3,[4,[5,6,7]]]],8,9]
 [1,[2,[3,[4,[5,6,0]]]],8,9]
 ";
-    assert_eq!(part1(input), 13);
-}
-
-#[test]
-fn test_part2() {
-    let input = "\
-[1,1,3,1,1]
-[1,1,5,1,1]
-
-[[1],[2,3,4]]
-[[1],4]
-
-[9]
-[[8,7,6]]
-
-[[4,4],4,4]
-[[4,4],4,4,4]
-
-[7,7,7,7]
-[7,7,7]
-
-[]
-[3]
-
-[[[]]]
-[[]]
-
-[1,[2,[3,[4,[5,6,7]]]],8,9]
-[1,[2,[3,[4,[5,6,0]]]],8,9]
-";
-    assert_eq!(part2(input), 140);
+    
+    #[test]
+    fn test_part1() {
+        assert_eq!(part1(TEST_INPUT), 13);
+    }
+    
+    #[test]
+    fn test_part2() {
+        assert_eq!(part2(TEST_INPUT), 140);
+    }
+    
 }
