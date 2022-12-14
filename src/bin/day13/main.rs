@@ -136,39 +136,45 @@ fn parse_packet(input: &str) -> Node {
 
 #[test]
 fn test_parse_list_of_five_numbers() {
+    use Node::*;
     let line = "[1,2,3,4,5]";
     let node = parse_packet(line);
-    match &node {
-        Node::List(list) => {
-            assert_eq!(list.len(), 5);
-            assert_eq!(list[0], Node::Number(1));
-            assert_eq!(list[1], Node::Number(2));
-            assert_eq!(list[2], Node::Number(3));
-            assert_eq!(list[3], Node::Number(4));
-            assert_eq!(list[4], Node::Number(5));
-        }
-        Node::Number(_) => panic!("expected list"),
-    }
+    assert_eq!(
+        node,
+        List(vec![Number(1), Number(2), Number(3), Number(4), Number(5)])
+    );
     assert_eq!(node.to_string(), line);
 }
 
 #[test]
 fn test_parse_nested_list_of_numbers() {
+    use Node::*;
     let line = "[[1],[2,3,4]]";
     let node = parse_packet(line);
-    match &node {
-        Node::List(list) => {
-            assert_eq!(list.len(), 2);
-        }
-        Node::Number(_) => panic!("expected list"),
-    }
+    assert_eq!(
+        node,
+        List(vec![
+            List(vec![Number(1)]),
+            List(vec![Number(2), Number(3), Number(4)])
+        ])
+    );
     assert_eq!(node.to_string(), line);
 }
 
 #[test]
 fn test_parse_nested_empty_lists() {
+    use Node::*;
     let line = "[[[]],[]]";
     let node = parse_packet(line);
+    assert_eq!(
+        node,
+        List(vec![
+            List(vec![
+                List(vec![])
+            ]),
+            List(vec![])
+        ])
+    );
     assert_eq!(node.to_string(), line);
 }
 
@@ -188,7 +194,9 @@ fn test_cmp_lists() {
     assert!(parse_packet("[7,7,7,7]") > parse_packet("[7,7,7]"));
     assert!(parse_packet("[]") < parse_packet("[3]"));
     assert!(parse_packet("[[[]]]") > parse_packet("[[]]"));
-    assert!(parse_packet("[1,[2,[3,[4,[5,6,7]]]],8,9]") > parse_packet("[1,[2,[3,[4,[5,6,0]]]],8,9]"));
+    assert!(
+        parse_packet("[1,[2,[3,[4,[5,6,7]]]],8,9]") > parse_packet("[1,[2,[3,[4,[5,6,0]]]],8,9]")
+    );
 }
 
 #[test]
