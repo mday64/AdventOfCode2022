@@ -61,6 +61,11 @@ enum Node {
     Number(u32),
 }
 
+impl Node {
+    fn list(num: &u32) -> Self {
+        Node::List(vec![Node::Number(*num)])
+    }
+}
 impl Display for Node {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -90,15 +95,12 @@ impl PartialOrd for Node {
 }
 impl Ord for Node {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        match self {
-            Node::Number(num) => match other {
-                Node::Number(other_num) => num.cmp(other_num),
-                Node::List(_) => Node::List(vec![Node::Number(*num)]).cmp(other),
-            },
-            Node::List(list) => match other {
-                Node::List(other_list) => list.cmp(other_list),
-                Node::Number(other_num) => self.cmp(&Node::List(vec![Node::Number(*other_num)])),
-            },
+        use Node::*;
+        match (self, other) {
+            (Number(num), Number(other_num)) => num.cmp(other_num),
+            (List(list), List(other_list)) => list.cmp(other_list),
+            (Number(num), List(_)) => Node::list(num).cmp(other),
+            (List(_), Number(other_num)) => self.cmp(&Node::list(other_num))
         }
     }
 }
