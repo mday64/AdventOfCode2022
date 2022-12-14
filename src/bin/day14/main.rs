@@ -8,6 +8,10 @@ fn main() {
     let result1 = part1(&input);
     println!("Part 1: {}", result1);
     assert_eq!(result1, 858);
+
+    let result2 = part2(&input);
+    println!("Part 2: {}", result2);
+    assert_eq!(result2, 26845);
 }
 
 fn part1(input: &str) -> usize {
@@ -19,15 +23,10 @@ fn part1(input: &str) -> usize {
 
     // Find the greatest Y value in `cells`
     let max_y = cells.keys().map(|(_,y)| y).max().copied().unwrap();
-    let min_x = cells.keys().map(|(x,_)| x).min().copied().unwrap();
-    let max_x = cells.keys().map(|(x,_)| x).max().copied().unwrap();
 
     // Start dropping units of sand
     let mut done = false;
     while !done {
-        // print!("\x1B[2J");
-        // show_cells(&cells, 400, 520, 0, 90);
-        // std::thread::sleep(std::time::Duration::from_secs(1));
         // Starting position of sand
         let mut x = 500;
         let mut y = 0;
@@ -47,7 +46,6 @@ fn part1(input: &str) -> usize {
                 y += 1;
             } else {
                 // Sand settles here
-                // println!("({x}, {y})");
                 cells.insert((x,y), Cell::Sand);
                 break;
             }
@@ -58,9 +56,49 @@ fn part1(input: &str) -> usize {
         }
     }
 
-    // print!("\x1B[2J");
-    // show_cells(&cells, 400, 520, 0, max_y);
-    
+    cells.values().filter(|v| v == &&Cell::Sand).count()
+}
+
+fn part2(input: &str) -> usize {
+    // Parse the input
+    let mut cells = HashMap::<Coord, Cell>::new();
+    for line in input.lines() {
+        fill_path(&mut cells, line);
+    }
+
+    // Find the greatest Y value in `cells`
+    let max_y = cells.keys().map(|(_,y)| y).max().copied().unwrap();
+
+    // Start dropping units of sand
+    while cells.get(&(500,0)).is_none() {
+        let mut x = 500;
+        let mut y = 0;
+
+        // Move until it settles
+        loop {
+            if y > max_y {
+                // Infinite floor below, so sand settles here
+                cells.insert((x,y), Cell::Sand);
+                break;
+            } else if cells.get(&(x, y+1)).is_none() {
+                // Must be air, keep falling down
+                y += 1;
+            } else if cells.get(&(x-1, y+1)).is_none() {
+                // Go down and left
+                x -= 1;
+                y += 1;
+            } else if cells.get(&(x+1, y+1)).is_none() {
+                // Go down and right
+                x += 1;
+                y += 1;
+            } else {
+                // Sand settles here
+                cells.insert((x,y), Cell::Sand);
+                break;
+            }
+        }
+    }
+
     cells.values().filter(|v| v == &&Cell::Sand).count()
 }
 
@@ -93,21 +131,14 @@ fn parse_coord(coord: &str) -> Coord {
     (x.parse().unwrap(), y.parse().unwrap())
 }
 
-fn show_cells(cells: &HashMap<Coord, Cell>, min_x: i32, max_x: i32, min_y: i32, max_y: i32) {
-    for y in min_y ..= max_y {
-        for x in min_x ..= max_x {
-            match cells.get(&(x, y)) {
-                None => print!(" "),
-                Some(Cell::Rock) => print!("#"),
-                Some(Cell::Sand) => print!("o"),
-            }
-        }
-        println!();
-    }
-}
-
 #[test]
 fn test_part1() {
     let input = "498,4 -> 498,6 -> 496,6\n503,4 -> 502,4 -> 502,9 -> 494,9\n";
     assert_eq!(part1(input), 24);
+}
+
+#[test]
+fn test_part2() {
+    let input = "498,4 -> 498,6 -> 496,6\n503,4 -> 502,4 -> 502,9 -> 494,9\n";
+    assert_eq!(part2(input), 93);
 }
