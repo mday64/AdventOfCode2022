@@ -8,9 +8,13 @@ fn main() {
     let result1 = part1(&input, 2_000_000);
     println!("Part 1: {}", result1);
     assert_eq!(result1, 4985193);
+
+    let result2 = part2(&input, 4_000_000);
+    println!("Part 2: {}", result2);
+    assert_eq!(result2, 11583882601918);
 }
 
-fn part1(input: &str, y: i32) -> i32 {
+fn part1(input: &str, y: i64) -> i64 {
     let mut ranges = RangeSet::new();
     let pairs = input.lines().map(parse_line).collect::<Vec<_>>();
     for (sensor, beacon) in pairs.iter() {
@@ -35,11 +39,57 @@ fn part1(input: &str, y: i32) -> i32 {
     ranges.len()
 }
 
+fn part1_range_set(input: &str, y: i64) -> RangeSet {
+    let mut ranges = RangeSet::new();
+    let pairs = input.lines().map(parse_line).collect::<Vec<_>>();
+    for (sensor, beacon) in pairs.iter() {
+        let dist = sensor.distance_to(beacon);
+        let dist_to_y = (sensor.1 - y).abs();
+        // println!("sensor = {sensor:?}, beacon = {beacon:?}, dist = {dist}, dist_y = {dist_to_y}");
+        if dist >= dist_to_y {
+            // There is at least one point on line `y` that is within `dist`
+            let min_x = sensor.0 - (dist - dist_to_y);
+            let max_x = sensor.0 + (dist - dist_to_y);
+            ranges.insert(min_x .. max_x+1);
+        }
+    }
+
+    // Now add any beacons on line `y`, which can't be the location
+    // of the distress signal.
+    for (_, beacon) in pairs.iter() {
+        if beacon.1 == y {
+            ranges.insert(beacon.0 .. beacon.0+1);
+        }
+    }
+
+    ranges
+}
+
+fn part2(input: &str, upper_y: i64) -> i64 {
+    // How do I solve this?  I can't try all 4,000,000 * 4,000,000
+    // possible coordinates.
+
+    // Let's try brute force.  Let's apply part1 to all possible Y
+    // values and see which one ends up as 2 ranges.
+    for y in 0 ..= upper_y {
+        // print!("{y}\r");
+        let mut ranges = part1_range_set(input, y);
+        ranges.intersect(0..upper_y+1);
+        if ranges.ranges.len() > 1 {
+            assert_eq!(ranges.ranges.len(), 2);
+            let x = ranges.ranges[0].end;
+            // println!("ranges: {ranges:?} => x={x}, y={y}");
+            return 4_000_000 * x + y;
+        }
+    }
+    panic!("No solution found!");
+}
+
 #[derive(Debug, PartialEq, Eq)]
-struct Point(i32, i32);
+struct Point(i64, i64);
 
 impl Point {
-    fn distance_to(&self, other: &Self) -> i32 {
+    fn distance_to(&self, other: &Self) -> i64 {
         (self.0 - other.0).abs() + (self.1 - other.1).abs()
     }
 }
@@ -52,34 +102,35 @@ impl Point {
 fn parse_line(mut line: &str) -> (Point, Point) {
     let mut left = line.find("x=").unwrap();
     let mut right = line.find(",").unwrap();
-    let mut x = line[left+2..right].parse::<i32>().unwrap();
+    let mut x = line[left+2..right].parse::<i64>().unwrap();
     line = &line[right..];
 
     left = line.find("y=").unwrap();
     right = line.find(":").unwrap();
-    let mut y = line[left+2..right].parse::<i32>().unwrap();
+    let mut y = line[left+2..right].parse::<i64>().unwrap();
     line = &line[right..];
 
     let sensor = Point(x,y);
 
     left = line.find("x=").unwrap();
     right = line.find(",").unwrap();
-    x = line[left+2..right].parse::<i32>().unwrap();
+    x = line[left+2..right].parse::<i64>().unwrap();
     line = &line[right..];
 
     left = line.find("y=").unwrap();
-    y = line[left+2..].parse::<i32>().unwrap();
+    y = line[left+2..].parse::<i64>().unwrap();
 
     let beacon = Point(x,y);
 
     (sensor, beacon)
 }
 
+#[derive(Debug)]
 struct RangeSet {
     // All of the ranges are non-overlapping.
     // They are in sorted order.
     // No range is empty.
-    ranges: Vec<Range<i32>>
+    ranges: Vec<Range<i64>>
 }
 
 impl RangeSet {
@@ -87,7 +138,7 @@ impl RangeSet {
         Self { ranges: Vec::new() }
     }
 
-    fn insert(&mut self, range: Range<i32>) {
+    fn insert(&mut self, range: Range<i64>) {
         //TODO: This could probably be handled by Iterator::scan
 
         if range.is_empty() {
@@ -102,7 +153,7 @@ impl RangeSet {
         let mut head = 0;   // Last index of fixed-up ranges
         let mut tail = 1;   // Index of next range to consider
         while tail < self.ranges.len() {
-            if self.ranges[head].end < self.ranges[tail].start - 1 {
+            if self.ranges[head].end < self.ranges[tail].start {
                 // Ranges are disjoint
                 if head+1 < tail {
                     self.ranges[head+1] = self.ranges[tail].clone();
@@ -119,7 +170,7 @@ impl RangeSet {
         self.ranges.truncate(head+1);
     }
 
-    fn remove(&mut self, removed: Range<i32>) {
+    fn remove(&mut self, removed: Range<i64>) {
         // We could just adjust start/end of existing ranges, and remove
         // ranges that have become empty.  The one remaining case would
         // be that the input `range` is in the middle of an existing range,
@@ -161,7 +212,31 @@ impl RangeSet {
         }).collect();
     }
 
-    fn len(&self) -> i32 {
+    fn intersect(&mut self, keep: Range<i64>) {
+        self.ranges = self.ranges.iter().filter_map(|r| {
+            if r.end <= keep.start {
+                return None;
+            }
+            if r.start >= keep.end {
+                return None;
+            }
+            if keep.start <= r.start && keep.end >= r.end {
+                return Some(r.clone());
+            }
+
+            // If we get here, we trim the head and/or tail of r.
+            let mut res = r.clone();
+            if keep.start > r.start {
+                res.start = keep.start;
+            }
+            if keep.end < r.end {
+                res.end = keep.end;
+            }
+            Some(res)
+        }).collect();
+    }
+
+    fn len(&self) -> i64 {
         assert!(self.is_consistent());
         self.ranges.iter().map(|r| r.end - r.start).sum()
     }
@@ -252,6 +327,17 @@ mod tests {
         assert_eq!(set.ranges, vec![3..12]);
     }
 
+
+    #[test]
+    fn test_range_set_insert_almost_adjacent() {
+        let mut set = RangeSet::new();
+        set.insert(13..18);
+        set.insert(2..6);
+        set.insert(7..12);
+        assert!(set.is_consistent());
+        assert_eq!(set.ranges, vec![2..6, 7..12, 13..18]);
+    }
+
     #[test]
     fn test_range_set_insert_multi_overlap() {
         let mut set = RangeSet::new();
@@ -300,5 +386,10 @@ mod tests {
     #[test]
     fn part1_example() {
         assert_eq!(part1(EXAMPLE, 10), 26);
+    }
+
+    #[test]
+    fn part2_example() {
+        assert_eq!(part2(EXAMPLE, 20), 56000011);
     }
 }
