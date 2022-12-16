@@ -9,6 +9,10 @@ fn main() {
     let result1 = part1(&input);
     println!("Part 1: {}", result1);
     assert_eq!(result1, 1701);
+
+    let result2 = part2(&input);
+    println!("Part 2: {}", result2);
+    assert_eq!(result2, 0);
 }
 
 //
@@ -19,68 +23,74 @@ fn main() {
 // a maximum and the algorithm finds a minimum.  Therefore, we'll use
 // negative costs.
 //
-// The state will be:
-//  location (valve name)
-//  time remaining (minutes)
-//  valves already open (HashSet<String>)
+// Idea: Find the shortest paths between every pair of valves.
+// Then, all we have to examine are moves between valves with non-zero
+// flow rates (and which have not yet been opened).  A single move is
+// go to a location with a closed valve and open it.
 //
-// Cost is -flow * minutes remaining (for opening a valve); zero for movement
-//
-#[derive(PartialEq, Eq, Hash, Clone, Debug)]
-struct State {
-    location: String,
-    minutes: i32,
-    opened: Vec<String>
-}
 fn part1(input: &str) -> i32 {
-    let valves = parse_input(input);
-    let initial = State { location: "AA".to_string(), minutes: 30, opened: vec![] };
-    // let success = |state: &State| state.minutes == 0;
+    #[derive(PartialEq, Eq, Hash, Clone, Debug)]
+    struct State {
+        location: String,
+        minutes: i32,
+        closed: Vec<String>
+    }
+    let input = parse_input(&input);
+    let paths = all_pairs_shortest_paths(&input);
+    let valve_names = input.iter().filter_map(|(name, valve)| {
+        if valve.flow > 0 {
+            Some(name.clone())
+        } else {
+            None
+        }
+        }).collect::<Vec<_>>();
+    let initial = State { location: "AA".to_string(), minutes: 30, closed: valve_names.clone() };
     let successors = |state: &State| -> Vec<(State, i32)> {
-        if state.minutes == 0 {
-            return vec![];
+        let mut result = Vec::new();
+        // Consider each of the remaining closed valves
+        for valve in state.closed.iter().cloned() {
+            // Find out how much time to get to that valve and open it
+            let time = paths[&(state.location.clone(), valve.clone())] + 1;
+            if time < state.minutes {
+                let cost = -(state.minutes - time)*input[&valve].flow;
+                let closed = state.closed.iter().filter(|name| **name != valve).cloned().collect();
+                result.push((
+                    State{ location: valve, minutes: state.minutes-time, closed },
+                    cost
+                ));
+            }
         }
-
-        // dbg!(&state.opened);
-
-        let mut next_states = vec![];
-
-        // If the current valve is not yet open and its flow rate is non-zero,
-        // then one possibility is to spend one minute opening the valve.
-        // Remember that cost is negative.  We subtract 1 because the flow
-        // doesn't begin until the start of the next minute.
-        if valves[&state.location].flow > 0 && !state.opened.contains(&state.location) {
-            let mut opened = state.opened.clone();
-            opened.push(state.location.clone());
-            next_states.push((
-                State{
-                    location: state.location.clone(),
-                    minutes: state.minutes - 1,
-                    opened
-                },
-                -(state.minutes-1)*valves[&state.location].flow
-            ));
-        }
-
-        // We can move to a location with a different valve
-        for neighbor in valves[&state.location].neighbors.iter() {
-            next_states.push((
-                State {
-                    location: neighbor.clone(),
-                    minutes: state.minutes - 1,
-                    opened: state.opened.clone()
-                }, 0
-            ));
-        }
-
-        next_states
+        result
     };
-    
+
     // Because "success" is defined as running out of time, we need to call
     // dijkstra_all to examine all possibilities.  Then find the best flow
     // from all of those.
     let result = dijkstra_all(&initial, successors);
-    result.values().map(|(_state, cost)| -cost).max().unwrap()
+    let result = result.values().map(|(state, cost)| (state, -cost)).max_by_key(|(_state, cost)| *cost).unwrap();
+    // dbg!(result.0);
+    result.1
+}
+
+fn all_pairs_shortest_paths(input: &HashMap<String, Valve>) -> HashMap<(String, String), i32> {
+    let mut result = HashMap::new();
+
+    // We're going to do this the expensive way: via dijkstra_all
+    for source in input.keys() {
+        let successors = |node: &String| -> Vec<(String, i32)> {
+            input[node].neighbors.iter().map(|name| (name.clone(), 1)).collect()
+        };
+        let paths = dijkstra_all(source, successors);
+        for (destination, (_, cost)) in paths.iter() {
+            result.insert((source.clone(), destination.clone()), *cost);
+        }
+    }
+
+    result
+}
+
+fn part2(input: &str) -> i32 {
+    part1(input)
 }
 
 #[derive(Debug)]
@@ -135,6 +145,11 @@ Valve II has flow rate=0; tunnels lead to valves AA, JJ
 Valve JJ has flow rate=21; tunnel leads to valve II";
 
 #[test]
-fn test_part1() {
+fn test_part1b() {
     assert_eq!(part1(EXAMPLE), 1651);
+}
+
+#[test]
+fn test_part2() {
+    assert_eq!(part2(EXAMPLE), 1707);
 }
