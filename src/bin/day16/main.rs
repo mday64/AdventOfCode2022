@@ -72,6 +72,116 @@ fn part1(input: &str) -> i32 {
     result.1
 }
 
+//
+// Part 2
+//
+// Similar to part 1, except that you have two people traveling through
+// the graph and turning on valves at the same time.
+//
+// Here's my idea.  Each person is traveling to some destination.
+// The state contains that destination and time remaining to reach it.
+// When they reach it (time remaining is zero), they consider every
+// valve left to handle that they can reach in the time remaining.
+// If both are traveling, then advance time to the soonest point where
+// at least one reaches their destination.
+//
+// Need to handle the possibility that all valves have been opened before
+// the total time has elapsed.  Or that one person doesn't have time
+// to reach any more valves, but the other does.
+//
+fn part2(input: &str) -> i32 {
+    #[derive(PartialEq, Eq, Hash, Clone, Debug)]
+    struct State {
+        person_destination: String,
+        person_travel_time: i32,
+        elephant_destination: String,
+        elephant_travel_time: i32,
+        minutes: i32,
+        todo: Vec<String>       // Closed valves not yet handled
+    }
+
+    let input = parse_input(&input);
+    let pairs = all_pairs_shortest_paths(&input);
+    let todo = input.iter().filter_map(|(name, valve)| {
+        if valve.flow > 0 {
+            Some(name.clone())
+        } else {
+            None
+        }
+        }).collect::<Vec<_>>();
+    let initial = State {
+        person_destination: "AA".to_string(),
+        person_travel_time: 0,
+        elephant_destination: "AA".to_string(),
+        elephant_travel_time: 0,
+        minutes: 26,
+        todo
+    };
+    let successors = |state: &State| -> Vec<(State, i32)> {
+        let mut result = vec![];
+
+        if state.todo.len() == 0 || state.minutes <= 0 {
+            // No more valves to consider, so we're done
+            return result;
+        }
+
+        if state.person_travel_time == 0 {
+            // See if the person can reach a valve in the time remaining
+            for valve in state.todo.iter() {
+                let time_to_valve = pairs[&(state.person_destination.clone(), valve.clone())];
+                if time_to_valve + 1 < state.minutes {
+                    let mut new_state = state.clone();
+                    new_state.person_destination = valve.clone();
+                    new_state.person_travel_time = time_to_valve + 1;
+                    new_state.todo = state.todo.iter().filter(|name| *name != valve).cloned().collect();
+                    let cost = -(state.minutes - time_to_valve - 1) * input[valve].flow;
+                    result.push((new_state, cost));
+                }
+            }
+            if result.len() > 0 {
+                return result;
+            }
+        }
+
+        if state.elephant_travel_time == 0 {
+            // See if the elephant can reach a valve in the time remaining
+            for valve in state.todo.iter() {
+                let time_to_valve = pairs[&(state.elephant_destination.clone(), valve.clone())];
+                if time_to_valve + 1 < state.minutes {
+                    let mut new_state = state.clone();
+                    new_state.elephant_destination = valve.clone();
+                    new_state.elephant_travel_time = time_to_valve + 1;
+                    new_state.todo = state.todo.iter().filter(|name| *name != valve).cloned().collect();
+                    let cost = -(state.minutes - time_to_valve - 1) * input[valve].flow;
+                    result.push((new_state, cost));
+                }
+            }
+            if result.len() > 0 {
+                return result;
+            }
+        }
+
+        let min_travel_time = state.person_travel_time.min(state.elephant_travel_time);
+        if min_travel_time > 0 {
+            // Let time pass
+            let mut new_state = state.clone();
+            new_state.person_travel_time -= min_travel_time;
+            new_state.elephant_travel_time -= min_travel_time;
+            new_state.minutes -= min_travel_time;
+            result.push((new_state, 0));
+        }
+        result
+    };
+    
+    // Because "success" is defined as running out of time, we need to call
+    // dijkstra_all to examine all possibilities.  Then find the best flow
+    // from all of those.
+    let result = dijkstra_all(&initial, successors);
+    let result = result.values().map(|(state, cost)| (state, -cost)).max_by_key(|(_state, cost)| *cost).unwrap();
+    // dbg!(result.0);
+    result.1
+}
+
 fn all_pairs_shortest_paths(input: &HashMap<String, Valve>) -> HashMap<(String, String), i32> {
     let mut result = HashMap::new();
 
@@ -87,10 +197,6 @@ fn all_pairs_shortest_paths(input: &HashMap<String, Valve>) -> HashMap<(String, 
     }
 
     result
-}
-
-fn part2(input: &str) -> i32 {
-    part1(input)
 }
 
 #[derive(Debug)]
