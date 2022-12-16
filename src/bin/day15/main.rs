@@ -40,9 +40,9 @@ fn part1(input: &str, y: i32) -> i32 {
     ranges.len()
 }
 
-fn part1_range_set(input: &str, y: i64) -> RangeSet<i64> {
+fn part1_range_set(input: &str, y: i32) -> RangeSet<i32> {
     let mut ranges = RangeSet::new();
-    let pairs = input.lines().map(parse_line::<i64>).collect::<Vec<_>>();
+    let pairs = input.lines().map(parse_line::<i32>).collect::<Vec<_>>();
     for (sensor, beacon) in pairs.iter() {
         let dist = sensor.distance_to(beacon);
         let dist_to_y = (sensor.1 - y).abs();
@@ -66,7 +66,7 @@ fn part1_range_set(input: &str, y: i64) -> RangeSet<i64> {
     ranges
 }
 
-fn part2(input: &str, upper_y: i64) -> i64 {
+fn part2(input: &str, upper_y: i32) -> i64 {
     // How do I solve this?  I can't try all 4,000,000 * 4,000,000
     // possible coordinates.
 
@@ -80,7 +80,7 @@ fn part2(input: &str, upper_y: i64) -> i64 {
             assert_eq!(ranges.ranges.len(), 2);
             let x = ranges.ranges[0].end;
             // println!("ranges: {ranges:?} => x={x}, y={y}");
-            return 4_000_000 * x + y;
+            return 4_000_000i64 * (x as i64) + (y as i64);
         }
     }
     panic!("No solution found!");
