@@ -1,4 +1,4 @@
-use std::ops::Range;
+use std::{fmt::Debug, iter::Sum, ops::{Add, Range, Sub}, str::FromStr};
 
 fn main() {
     let path = std::env::args().skip(1).next()
@@ -14,9 +14,9 @@ fn main() {
     assert_eq!(result2, 11583882601918);
 }
 
-fn part1(input: &str, y: i64) -> i64 {
+fn part1(input: &str, y: i32) -> i32 {
     let mut ranges = RangeSet::new();
-    let pairs = input.lines().map(parse_line).collect::<Vec<_>>();
+    let pairs = input.lines().map(parse_line::<i32>).collect::<Vec<_>>();
     for (sensor, beacon) in pairs.iter() {
         let dist = sensor.distance_to(beacon);
         let dist_to_y = (sensor.1 - y).abs();
@@ -39,9 +39,9 @@ fn part1(input: &str, y: i64) -> i64 {
     ranges.len()
 }
 
-fn part1_range_set(input: &str, y: i64) -> RangeSet {
+fn part1_range_set(input: &str, y: i64) -> RangeSet<i64> {
     let mut ranges = RangeSet::new();
-    let pairs = input.lines().map(parse_line).collect::<Vec<_>>();
+    let pairs = input.lines().map(parse_line::<i64>).collect::<Vec<_>>();
     for (sensor, beacon) in pairs.iter() {
         let dist = sensor.distance_to(beacon);
         let dist_to_y = (sensor.1 - y).abs();
@@ -86,11 +86,17 @@ fn part2(input: &str, upper_y: i64) -> i64 {
 }
 
 #[derive(Debug, PartialEq, Eq)]
-struct Point(i64, i64);
+struct Point<T>(T, T);
 
-impl Point {
-    fn distance_to(&self, other: &Self) -> i64 {
-        (self.0 - other.0).abs() + (self.1 - other.1).abs()
+impl<T> Point<T>
+where T: Copy + Sub<Output=T> + Add<Output=T> + Ord
+{
+    fn distance_to(&self, other: &Self) -> T {
+        let min0 = self.0.min(other.0);
+        let max0 = self.0.max(other.0);
+        let min1 = self.1.min(other.1);
+        let max1 = self.1.max(other.1);
+        (max0 - min0) + (max1 - min1)
     }
 }
 
@@ -99,26 +105,28 @@ impl Point {
 //  Sensor at x=2, y=18: closest beacon is at x=-2, y=15
 // and return the Point for the sensor and beacon (in that order)
 //
-fn parse_line(mut line: &str) -> (Point, Point) {
+fn parse_line<T>(mut line: &str) -> (Point<T>, Point<T>)
+where T: FromStr, <T as FromStr>::Err: Debug
+{
     let mut left = line.find("x=").unwrap();
     let mut right = line.find(",").unwrap();
-    let mut x = line[left+2..right].parse::<i64>().unwrap();
+    let mut x = line[left+2..right].parse::<T>().unwrap();
     line = &line[right..];
 
     left = line.find("y=").unwrap();
     right = line.find(":").unwrap();
-    let mut y = line[left+2..right].parse::<i64>().unwrap();
+    let mut y = line[left+2..right].parse::<T>().unwrap();
     line = &line[right..];
 
     let sensor = Point(x,y);
 
     left = line.find("x=").unwrap();
     right = line.find(",").unwrap();
-    x = line[left+2..right].parse::<i64>().unwrap();
+    x = line[left+2..right].parse::<T>().unwrap();
     line = &line[right..];
 
     left = line.find("y=").unwrap();
-    y = line[left+2..].parse::<i64>().unwrap();
+    y = line[left+2..].parse::<T>().unwrap();
 
     let beacon = Point(x,y);
 
@@ -126,19 +134,22 @@ fn parse_line(mut line: &str) -> (Point, Point) {
 }
 
 #[derive(Debug)]
-struct RangeSet {
+struct RangeSet<T>
+{
     // All of the ranges are non-overlapping.
     // They are in sorted order.
     // No range is empty.
-    ranges: Vec<Range<i64>>
+    ranges: Vec<Range<T>>
 }
 
-impl RangeSet {
+impl<T> RangeSet<T>
+where T: Copy + Clone + PartialOrd + Ord + Sum<T> + Sub + Sum<<T as Sub>::Output>
+{
     fn new() -> Self {
         Self { ranges: Vec::new() }
     }
 
-    fn insert(&mut self, range: Range<i64>) {
+    fn insert(&mut self, range: Range<T>) {
         //TODO: This could probably be handled by Iterator::scan
 
         if range.is_empty() {
@@ -170,7 +181,7 @@ impl RangeSet {
         self.ranges.truncate(head+1);
     }
 
-    fn remove(&mut self, removed: Range<i64>) {
+    fn remove(&mut self, removed: Range<T>) {
         // We could just adjust start/end of existing ranges, and remove
         // ranges that have become empty.  The one remaining case would
         // be that the input `range` is in the middle of an existing range,
@@ -212,7 +223,7 @@ impl RangeSet {
         }).collect();
     }
 
-    fn intersect(&mut self, keep: Range<i64>) {
+    fn intersect(&mut self, keep: Range<T>) {
         self.ranges = self.ranges.iter().filter_map(|r| {
             if r.end <= keep.start {
                 return None;
@@ -236,7 +247,7 @@ impl RangeSet {
         }).collect();
     }
 
-    fn len(&self) -> i64 {
+    fn len(&self) -> T {
         assert!(self.is_consistent());
         self.ranges.iter().map(|r| r.end - r.start).sum()
     }
