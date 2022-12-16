@@ -5,6 +5,7 @@ fn main() {
     let path = std::env::args().skip(1).next()
         .unwrap_or("src/bin/day15/input.txt".into());
     let input = std::fs::read_to_string(path).unwrap();
+    let input = input.lines().map(parse_line::<i32>).collect::<Vec<_>>();
 
     let result1 = part1(&input, 2_000_000);
     println!("Part 1: {}", result1);
@@ -15,9 +16,8 @@ fn main() {
     assert_eq!(result2, 11583882601918);
 }
 
-fn part1(input: &str, y: i32) -> i32 {
+fn part1(pairs: &[(Point<i32>, Point<i32>)], y: i32) -> i32 {
     let mut ranges = RangeSet::new();
-    let pairs = input.lines().map(parse_line::<i32>).collect::<Vec<_>>();
     for (sensor, beacon) in pairs.iter() {
         let dist = sensor.distance_to(beacon);
         let dist_to_y = (sensor.1 - y).abs();
@@ -40,9 +40,8 @@ fn part1(input: &str, y: i32) -> i32 {
     ranges.len()
 }
 
-fn part1_range_set(input: &str, y: i32) -> RangeSet<i32> {
+fn part1_range_set(pairs: &[(Point<i32>, Point<i32>)], y: i32) -> RangeSet<i32> {
     let mut ranges = RangeSet::new();
-    let pairs = input.lines().map(parse_line::<i32>).collect::<Vec<_>>();
     for (sensor, beacon) in pairs.iter() {
         let dist = sensor.distance_to(beacon);
         let dist_to_y = (sensor.1 - y).abs();
@@ -66,7 +65,7 @@ fn part1_range_set(input: &str, y: i32) -> RangeSet<i32> {
     ranges
 }
 
-fn part2(input: &str, upper_y: i32) -> i64 {
+fn part2(input: &[(Point<i32>, Point<i32>)], upper_y: i32) -> i64 {
     // How do I solve this?  I can't try all 4,000,000 * 4,000,000
     // possible coordinates.
 
@@ -169,11 +168,13 @@ mod tests {
     
     #[test]
     fn part1_example() {
-        assert_eq!(part1(EXAMPLE, 10), 26);
+        let input = EXAMPLE.lines().map(parse_line::<i32>).collect::<Vec<_>>();
+        assert_eq!(part1(&input, 10), 26);
     }
 
     #[test]
     fn part2_example() {
-        assert_eq!(part2(EXAMPLE, 20), 56000011);
+        let input = EXAMPLE.lines().map(parse_line::<i32>).collect::<Vec<_>>();
+        assert_eq!(part2(&input, 20), 56000011);
     }
 }
