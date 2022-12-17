@@ -89,6 +89,7 @@ fn part1(input: &str) -> i32 {
 // the total time has elapsed.  Or that one person doesn't have time
 // to reach any more valves, but the other does.
 //
+#[cfg(test)]
 fn part2(input: &str) -> i32 {
     #[derive(PartialEq, Eq, Hash, Clone, Debug)]
     struct State {
