@@ -7,7 +7,7 @@ fn main() {
 
     let result1 = part1(&input);
     println!("Part 1: {}", result1);
-    // assert_eq!(result1, 0);
+    assert_eq!(result1, 3161);
 }
 
 //
@@ -42,7 +42,9 @@ fn part1(input: &str) -> usize {
     let mut chamber: Vec<u16> = Vec::with_capacity(4000);
     let mut chamber_used = 0;
 
-    for _ in 0..2022 {
+    for _iteration in 0..2022 {
+        // println!("== {_iteration} ==");
+
         // Get the next rock
         let mut rock = rocks.next().unwrap().clone();
 
@@ -52,6 +54,9 @@ fn part1(input: &str) -> usize {
         // Make sure the chamber is tall enough to accomodate the
         // current rock at its initial height
         chamber.resize(height + rock.len(), CHAMBER_WALLS);
+
+        // print_chamber(&chamber, height, &rock);
+        // std::thread::sleep(std::time::Duration::from_millis(500));
 
         loop {
             // Try to push rock left or right based on input
@@ -73,7 +78,7 @@ fn part1(input: &str) -> usize {
                 height -= 1;
             } else {
                 // Rock comes to rest
-                chamber_used = height + rock.len();
+                chamber_used = chamber_used.max(height + rock.len());
                 for (i, v) in rock.into_iter().enumerate() {
                     chamber[height + i] |= v;
                 }
@@ -88,6 +93,7 @@ fn part1(input: &str) -> usize {
         chamber.pop();
     }
     assert_eq!(chamber.len(), chamber_used);
+
     chamber_used
 }
 

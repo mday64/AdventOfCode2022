@@ -336,3 +336,5 @@ To prove to the elephants your simulation is accurate, they want to know how tal
 
 **How many units tall will the tower of rocks be after 2022 rocks have stopped falling?**
 
+Your puzzle answer was `3161`.
+
