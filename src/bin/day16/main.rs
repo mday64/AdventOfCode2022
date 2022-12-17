@@ -10,9 +10,9 @@ fn main() {
     println!("Part 1: {}", result1);
     assert_eq!(result1, 1701);
 
-    let result2 = part2(&input);
+    let result2 = part2b(&input);
     println!("Part 2: {}", result2);
-    assert_eq!(result2, 0);
+    assert_eq!(result2, 2455);
 }
 
 //
@@ -182,6 +182,64 @@ fn part2(input: &str) -> i32 {
     result.1
 }
 
+//
+// The idea here is to see which valves the person could open in the allotted
+// time (essentially part 1), then remove those valves from consideration and
+// run again for the elephant.  The answer is the total flow from both runs.
+//
+fn part2b(input: &str) -> i32 {
+    #[derive(PartialEq, Eq, Hash, Clone, Debug)]
+    struct State {
+        location: String,
+        minutes: i32,
+        closed: Vec<String>
+    }
+    let input = parse_input(&input);
+    let paths = all_pairs_shortest_paths(&input);
+    let valve_names = input.iter().filter_map(|(name, valve)| {
+        if valve.flow > 0 {
+            Some(name.clone())
+        } else {
+            None
+        }
+        }).collect::<Vec<_>>();
+    let initial = State { location: "AA".to_string(), minutes: 26, closed: valve_names };
+    let successors = |state: &State| -> Vec<(State, i32)> {
+        let mut result = Vec::new();
+        // Consider each of the remaining closed valves
+        for valve in state.closed.iter().cloned() {
+            // Find out how much time to get to that valve and open it
+            let time = paths[&(state.location.clone(), valve.clone())] + 1;
+            if time < state.minutes {
+                let cost = -(state.minutes - time)*input[&valve].flow;
+                let closed = state.closed.iter().filter(|name| **name != valve).cloned().collect();
+                result.push((
+                    State{ location: valve, minutes: state.minutes-time, closed },
+                    cost
+                ));
+            }
+        }
+        result
+    };
+
+    // Because "success" is defined as running out of time, we need to call
+    // dijkstra_all to examine all possibilities.  Then find the best flow
+    // from all of those.
+    let result = dijkstra_all(&initial, successors);
+    let result = result.values().map(|(state, cost)| (state, -cost)).max_by_key(|(_state, cost)| *cost).unwrap();
+    dbg!(result.0);
+    let person_flow = result.1;
+
+    // Solve for the valves still closed from above.
+    let initial = State { location: "AA".to_string(), minutes: 26, closed: result.0.closed.clone() };
+    let result = dijkstra_all(&initial, successors);
+    let result = result.values().map(|(state, cost)| (state, -cost)).max_by_key(|(_state, cost)| *cost).unwrap();
+    dbg!(result.0);
+    let elephant_flow = result.1;
+
+    person_flow + elephant_flow
+}
+
 fn all_pairs_shortest_paths(input: &HashMap<String, Valve>) -> HashMap<(String, String), i32> {
     let mut result = HashMap::new();
 
@@ -251,11 +309,16 @@ Valve II has flow rate=0; tunnels lead to valves AA, JJ
 Valve JJ has flow rate=21; tunnel leads to valve II";
 
 #[test]
-fn test_part1b() {
+fn test_part1() {
     assert_eq!(part1(EXAMPLE), 1651);
 }
 
 #[test]
 fn test_part2() {
     assert_eq!(part2(EXAMPLE), 1707);
+}
+
+#[test]
+fn test_part2b() {
+    assert_eq!(part2b(EXAMPLE), 1707);
 }
