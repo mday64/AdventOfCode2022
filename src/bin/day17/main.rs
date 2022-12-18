@@ -207,16 +207,16 @@ fn part2(input: &str) -> usize {
                 }
             }
 
-            if found {
-                dbg!(pattern_length);
-                // Make sure that the rock formations are acutally repeating
-                let pattern_rocks = pattern_length * input_length;
-                if chamber[chamber_used-pattern_rocks .. chamber_used] !=
-                        chamber[chamber_used - 2 * pattern_rocks .. chamber_used-pattern_rocks] {
-                    dbg!("Rock patterns don't match!");
-                    found = false;
-                }
-            }
+            // if found {
+            //     dbg!(pattern_length);
+            //     // Make sure that the rock formations are acutally repeating
+            //     let pattern_rocks = pattern_length * input_length;
+            //     if chamber[chamber_used-pattern_rocks .. chamber_used] !=
+            //             chamber[chamber_used - 2 * pattern_rocks .. chamber_used-pattern_rocks] {
+            //         dbg!("Rock patterns don't match!");
+            //         found = false;
+            //     }
+            // }
             if found {
                 break;
             }
