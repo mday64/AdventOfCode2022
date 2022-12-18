@@ -40,7 +40,7 @@ fn part2(input: &str) -> u32 {
 
     let mut result = 0;
 
-    for cube in lava.cubes.iter() {
+    for cube in lava.iter() {
         for neighbor in cube_neighbors(cube) {
             if lava.is_exterior(&neighbor) {
                 result += 1;
@@ -68,8 +68,13 @@ impl Lava {
         Self { cubes, bounds, exterior }
     }
 
+    #[allow(dead_code)]
     fn contains(&self, point: &Point) -> bool {
         self.cubes.contains(point)
+    }
+
+    fn iter(&self) -> impl Iterator<Item=&Point> {
+        self.cubes.iter()
     }
 
     //
