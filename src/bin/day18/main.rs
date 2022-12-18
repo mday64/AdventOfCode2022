@@ -75,9 +75,6 @@ impl Lava {
         if self.cubes.contains(point) {
             return false;
         }
-        // if self.exterior.borrow().contains(point) {
-        //     return true;
-        // }
 
         let successors = |cube: &Point| -> Vec<(Point,u8)> {
             cube_neighbors(cube).into_iter()
