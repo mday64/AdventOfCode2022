@@ -1,4 +1,5 @@
-use std::collections::HashSet;
+use std::{cell::RefCell, collections::HashSet, ops::RangeInclusive};
+use pathfinding::prelude::dijkstra;
 
 fn main() {
     let path = std::env::args().skip(1).next()
@@ -8,6 +9,10 @@ fn main() {
     let result1 = part1(&input);
     println!("Part 1: {}", result1);
     assert_eq!(result1, 3500);
+
+    let result2 = part2(&input);
+    println!("Part 2: {}", result2);
+    assert_eq!(result2, 2048);
 }
 
 fn part1(input: &str) -> u32 {
@@ -23,7 +28,107 @@ fn part1(input: &str) -> u32 {
     result
 }
 
-fn cube_neighbors(&(x,y,z): &(i8,i8,i8)) -> Vec<(i8,i8,i8)> {
+//
+// Part 2
+//
+// Similar to part 1, except don't count faces where the neighbor is
+// interior to the droplet (i.e. there is no path to outside the drop's
+// bounding box).
+//
+fn part2(input: &str) -> u32 {
+    let lava = Lava::new(input);
+
+    let mut result = 0;
+
+    for cube in lava.cubes.iter() {
+        for neighbor in cube_neighbors(cube) {
+            if lava.is_exterior(&neighbor) {
+                result += 1;
+            }
+        }
+    }
+
+    result
+}
+
+type Point = (i8,i8,i8);
+type BoundingBox = (RangeInclusive<i8>, RangeInclusive<i8>, RangeInclusive<i8>);
+
+struct Lava {
+    cubes: HashSet<Point>,
+    bounds: BoundingBox,
+    exterior: RefCell<HashSet<Point>>,   // A cache of points known to be exterior
+}
+
+impl Lava {
+    fn new(input: &str) -> Self {
+        let cubes = parse_input(input);
+        let bounds = get_bounds(&cubes);
+        let exterior = RefCell::new(HashSet::new());
+        Self { cubes, bounds, exterior }
+    }
+
+    fn contains(&self, point: &Point) -> bool {
+        self.cubes.contains(point)
+    }
+
+    //
+    // A cube is exterior if it has a path to a point outside the bounding box
+    //
+    fn is_exterior(&self, point: &Point) -> bool {
+        if self.cubes.contains(point) {
+            return false;
+        }
+        if self.exterior.borrow().contains(point) {
+            return true;
+        }
+
+        let successors = |cube: &Point| -> Vec<(Point,u8)> {
+            cube_neighbors(cube).into_iter()
+                .filter(|p| !self.cubes.contains(p))
+                .map(|p| (p,1))
+                .collect()
+        };
+        let success = |cube: &Point| -> bool {
+            !self.bounds.0.contains(&cube.0) ||
+            !self.bounds.1.contains(&cube.1) ||
+            !self.bounds.2.contains(&cube.2)
+        };
+        let path = dijkstra(point, successors, success);
+        match path {
+            Some((points, _)) => {
+                self.exterior.borrow_mut().extend(points);
+                true
+            },
+            None => false
+        }
+    }
+}
+
+fn get_bounds(lava: &HashSet<Point>) -> BoundingBox {
+    // Get one of the cubes from the lava to initialize our ranges.
+    let cube = lava.iter().next().unwrap();
+    let mut xmin = cube.0;
+    let mut xmax = cube.0;
+    let mut ymin = cube.1;
+    let mut ymax = cube.1;
+    let mut zmin = cube.2;
+    let mut zmax = cube.2;
+
+    // Expand the ranges to include all of the cubes
+    for cube in lava {
+        xmin = xmin.min(cube.0);
+        xmax = xmax.max(cube.0);
+        ymin = ymin.min(cube.1);
+        ymax = ymax.max(cube.1);
+        zmin = zmin.min(cube.2);
+        zmax = zmax.max(cube.2);
+    }
+
+    (xmin..=xmax, ymin..=ymax, zmin..=zmax)
+}
+
+fn cube_neighbors(&(x,y,z): &Point) -> Vec<Point> {
     vec![
         (x+1,y,z),
         (x-1,y,z),
@@ -34,7 +139,7 @@ fn cube_neighbors(&(x,y,z): &(i8,i8,i8)) -> Vec<(i8,i8,i8)> {
     ]
 }
 
-fn parse_input(input: &str) -> HashSet<(i8,i8,i8)> {
+fn parse_input(input: &str) -> HashSet<Point> {
     let mut cubes = HashSet::<(i8,i8,i8)>::new();
     for line in input.lines() {
         let mut numbers = line.split(',').map(|s| s.parse::<i8>().unwrap());
@@ -61,4 +166,23 @@ fn test_part1() {
         2,1,5\n\
         2,3,5\n";
     assert_eq!(part1(&input), 64);
+}
+
+#[test]
+fn test_part2() {
+    let input = "\
+        2,2,2\n\
+        1,2,2\n\
+        3,2,2\n\
+        2,1,2\n\
+        2,3,2\n\
+        2,2,1\n\
+        2,2,3\n\
+        2,2,4\n\
+        2,2,6\n\
+        1,2,5\n\
+        3,2,5\n\
+        2,1,5\n\
+        2,3,5\n";
+    assert_eq!(part2(&input), 58);
 }

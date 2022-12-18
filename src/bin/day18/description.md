@@ -42,3 +42,4 @@ In the larger example above, exactly one cube of air is trapped within the lava 
 
 **What is the exterior surface area of your scanned lava droplet?**
 
+Your puzzle answer was `2048`.
