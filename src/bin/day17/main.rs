@@ -4,12 +4,16 @@ fn main() {
     let input = std::fs::read_to_string(path).unwrap();
     let input = input.trim_end();
 
+    let now = std::time::Instant::now();
     let result1 = part1(&input);
-    println!("Part 1: {}", result1);
+    let duration = now.elapsed().as_secs_f64();
+    println!("Part 1: {} (in {} seconds)", result1, duration);
     // assert_eq!(result1, 3161);
 
+    let now = std::time::Instant::now();
     let result2 = part2(&input);
-    println!("Part 2: {}", result2);
+    let duration = now.elapsed().as_secs_f64();
+    println!("Part 2: {} (in {} seconds)", result2, duration);
     // assert_eq!(result2, 0);
 }
 
