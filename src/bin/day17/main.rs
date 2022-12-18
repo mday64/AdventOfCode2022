@@ -1,4 +1,3 @@
-
 fn main() {
     let path = std::env::args().skip(1).next()
         .unwrap_or("src/bin/day17/input.txt".into());
@@ -7,7 +6,7 @@ fn main() {
 
     let result1 = part1(&input);
     println!("Part 1: {}", result1);
-    assert_eq!(result1, 3161);
+    // assert_eq!(result1, 3161);
 
     let result2 = part2(&input);
     println!("Part 2: {}", result2);
@@ -207,6 +206,17 @@ fn part2(input: &str) -> usize {
                     }
                 }
             }
+
+            if found {
+                dbg!(pattern_length);
+                // Make sure that the rock formations are acutally repeating
+                let pattern_rocks = pattern_length * input_length;
+                if chamber[chamber_used-pattern_rocks .. chamber_used] !=
+                        chamber[chamber_used - 2 * pattern_rocks .. chamber_used-pattern_rocks] {
+                    dbg!("Rock patterns don't match!");
+                    found = false;
+                }
+            }
             if found {
                 break;
             }
@@ -218,7 +228,7 @@ fn part2(input: &str) -> usize {
     let pattern_height: usize = delta_heights.iter().rev().take(pattern_length).sum();
     let pattern_reps = (1000000000000 - delta_heights.len() * input_length) / (pattern_length * input_length);
     let mut answer = chamber_used + pattern_height * pattern_reps;
-    let rocks_done = delta_heights.len() + pattern_reps * pattern_length * input_length;
+    let rocks_done = delta_heights.len() * input_length + pattern_reps * pattern_length * input_length;
 
     // Do some more rock falls until we hit the magic total, keeping
     // track of the additional height added.
@@ -269,6 +279,75 @@ fn part2(input: &str) -> usize {
     answer
 }
 
+#[cfg(test)]
+fn part2_slow(input: &str) -> usize {
+    let mut input = input.chars().cycle();
+    let rocks: Vec<Vec<u16>> = vec![
+        vec![0b00111100],
+        vec![0b00010000, 0b00111000, 0b00010000],
+        vec![0b00111000, 0b00001000, 0b00001000],
+        vec![0b00100000, 0b00100000, 0b00100000, 0b00100000],
+        vec![0b00110000, 0b00110000]
+    ];
+    let mut rocks = rocks.iter().cycle();
+
+    const CHAMBER_WALLS: u16 = 0b100000001;
+    let mut chamber: Vec<u16> = Vec::with_capacity(4000);
+    let mut chamber_used = 0;
+    let mut shifted = 0;
+
+    for _iteration in 0..2022 {
+        if _iteration % 1_000_000 == 0 {
+            println!("{}", _iteration/1_000_000);
+        }
+
+        // Get the next rock
+        let mut rock = rocks.next().unwrap().clone();
+
+        // Set the initial height of the rock
+        let mut height = chamber_used + 3;
+
+        // Make sure the chamber is tall enough to accomodate the
+        // current rock at its initial height
+        chamber.resize(height + rock.len(), CHAMBER_WALLS);
+
+        loop {
+            // Try to push rock left or right based on input
+            let movement = match input.next().unwrap() {
+                '>' => |v: u16| v >> 1,
+                '<' => |v: u16| v << 1,
+                _ => panic!("invalid input"),
+            };
+            if rock.iter().enumerate().all(|(i,v)| chamber[height+i] & movement(*v) == 0) {
+                for v in rock.iter_mut() {
+                    *v = movement(*v);
+                }
+            }
+
+            // Try to push rock down
+            if height > 0 && rock.iter().enumerate().all(|(i,v)| chamber[height+i-1] & v == 0) {
+                height -= 1;
+            } else {
+                // Rock comes to rest
+                chamber_used = chamber_used.max(height + rock.len());
+                for (i, v) in rock.into_iter().enumerate() {
+                    chamber[height + i] |= v;
+                }
+                break;
+            }
+        }
+
+        if chamber_used > 1000 {
+            // Remove the first 500 items in chamber[]
+            chamber.drain(0..900);
+            shifted += 900;
+            chamber_used -= 900;
+        }
+    }
+
+    shifted + chamber_used
+}
+
 #[allow(dead_code)]
 fn print_chamber(chamber: &[u16], height: usize, rock: &[u16]) {
     for (h,v) in chamber.iter().enumerate().rev() {
@@ -300,4 +379,11 @@ fn test_part1() {
 fn test_part2() {
     let input = ">>><<><>><<<>><>>><<<>>><<<><<<>><>><<>>";
     assert_eq!(part2(input), 1514285714288);
+}
+
+#[test]
+#[ignore]
+fn test_part2_slow() {
+    let input = ">>><<><>><<<>><>>><<<>>><<<><<<>><>><<>>";
+    assert_eq!(part2_slow(input), 1514285714288);
 }
