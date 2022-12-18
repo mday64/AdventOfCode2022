@@ -1,4 +1,4 @@
-use std::{cell::RefCell, collections::HashSet, ops::RangeInclusive};
+use std::{collections::HashSet, ops::RangeInclusive};
 use pathfinding::prelude::dijkstra;
 
 fn main() {
@@ -50,15 +50,13 @@ type BoundingBox = (RangeInclusive<i8>, RangeInclusive<i8>, RangeInclusive<i8>);
 struct Lava {
     cubes: HashSet<Point>,
     bounds: BoundingBox,
-    exterior: RefCell<HashSet<Point>>,   // A cache of points known to be exterior
 }
 
 impl Lava {
     fn new(input: &str) -> Self {
         let cubes = parse_input(input);
         let bounds = get_bounds(&cubes);
-        let exterior = RefCell::new(HashSet::new());
-        Self { cubes, bounds, exterior }
+        Self { cubes, bounds, }
     }
 
     #[allow(dead_code)]
@@ -77,9 +75,9 @@ impl Lava {
         if self.cubes.contains(point) {
             return false;
         }
-        if self.exterior.borrow().contains(point) {
-            return true;
-        }
+        // if self.exterior.borrow().contains(point) {
+        //     return true;
+        // }
 
         let successors = |cube: &Point| -> Vec<(Point,u8)> {
             cube_neighbors(cube).into_iter()
@@ -92,14 +90,7 @@ impl Lava {
             !self.bounds.1.contains(&cube.1) ||
             !self.bounds.2.contains(&cube.2)
         };
-        let path = dijkstra(point, successors, success);
-        match path {
-            Some((points, _)) => {
-                self.exterior.borrow_mut().extend(points);
-                true
-            },
-            None => false
-        }
+        dijkstra(point, successors, success).is_some()
     }
 }
 
