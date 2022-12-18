@@ -15,17 +15,15 @@ fn main() {
     assert_eq!(result2, 2048);
 }
 
-fn part1(input: &str) -> u32 {
-    let mut result = 0;
+fn part1(input: &str) -> usize {
     let cubes = parse_input(&input);
-    for cube in cubes.iter() {
-        for neighbor in cube_neighbors(cube) {
-            if !cubes.contains(&neighbor) {
-                result += 1;
-            }
-        }
-    }
-    result
+
+    cubes.iter().map(|cube| {
+        cube_neighbors(cube)
+            .iter()
+            .filter(|cube| !cubes.contains(cube))
+            .count()
+    }).sum()
 }
 
 //
@@ -35,20 +33,15 @@ fn part1(input: &str) -> u32 {
 // interior to the droplet (i.e. there is no path to outside the drop's
 // bounding box).
 //
-fn part2(input: &str) -> u32 {
+fn part2(input: &str) -> usize {
     let lava = Lava::new(input);
 
-    let mut result = 0;
-
-    for cube in lava.iter() {
-        for neighbor in cube_neighbors(cube) {
-            if lava.is_exterior(&neighbor) {
-                result += 1;
-            }
-        }
-    }
-
-    result
+    lava.iter().map(|cube| {
+        cube_neighbors(cube)
+            .iter()
+            .filter(|neighbor| lava.is_exterior(neighbor))
+            .count()
+    }).sum()
 }
 
 type Point = (i8,i8,i8);
