@@ -23,9 +23,6 @@ fn part1(blueprints: &[Blueprint]) -> u16 {
 }
 
 fn part2(blueprints: &[Blueprint]) -> u32 {
-    // We're not going to use parallel iterators here, since
-    // memory use will explode (more minutes means a deeper
-    // search tree, and more states to track)
     blueprints.par_iter().take(3).map(|blueprint|
         collect_geodes(blueprint, 32) as u32
     ).product()
@@ -58,6 +55,7 @@ fn collect_geodes(blueprint: &Blueprint, minutes: u16) -> u16 {
         geode_robots: u16
     }
 
+    // Precompute the max number of each type of robot
     let max_ore_robots = blueprint.clay_robot_ore_cost
         .max(blueprint.obsidian_robot_ore_cost)
         .max(blueprint.geode_robot_ore_cost);
@@ -78,8 +76,9 @@ fn collect_geodes(blueprint: &Blueprint, minutes: u16) -> u16 {
         let minutes = state.minutes - 1;
 
         // Figure out whether we can start building a new robot.
-        // I'm going to assume a max of one new robot, and try them in
-        // order from most costly to least costly.
+        // The robot factory can only build one robot at a time.
+        // Don't forget to add in the materials made by the pre-existing
+        // robots.
         if state.ore >= blueprint.geode_robot_ore_cost &&
             state.obsidian >= blueprint.geode_robot_obsidian_cost
         {
@@ -134,7 +133,7 @@ fn collect_geodes(blueprint: &Blueprint, minutes: u16) -> u16 {
             });
         }
 
-        // Robots collect their materials
+        // Try accumulating materials without building a robot
         result.push(State {
             minutes,
             ore: state.ore + state.ore_robots,
@@ -147,13 +146,9 @@ fn collect_geodes(blueprint: &Blueprint, minutes: u16) -> u16 {
     };
 
     dfs_reach(start, successors)
-        .filter_map(|state|
-            if state.minutes == 0 {
-                Some(state.geodes)
-            } else {
-                None
-            }
-        ).max().unwrap()
+        .filter(|state| state.minutes == 0)
+        .map(|state| state.geodes)
+        .max().unwrap()
 }
 
 #[derive(Debug)]
