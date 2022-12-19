@@ -43,19 +43,19 @@ fn part2(blueprints: &[Blueprint]) -> u32 {
 // type of robot than the maximum number of that material needed for
 // any robot.  I think that is a way to prune possible future states.
 //
-fn collect_geodes(blueprint: &Blueprint, minutes: u8) -> u8 {
+fn collect_geodes(blueprint: &Blueprint, minutes: u16) -> u16 {
     // Use a depth-first search to find all combinations
     #[derive(Debug, PartialEq, Eq, Hash, Clone)]
     struct State {
-        minutes: u8,
-        ore: u8,
-        clay: u8,
-        obsidian: u8,
-        geodes: u8,
-        ore_robots: u8,
-        clay_robots: u8,
-        obsidian_robots: u8,
-        geode_robots: u8
+        minutes: u16,
+        ore: u16,
+        clay: u16,
+        obsidian: u16,
+        geodes: u16,
+        ore_robots: u16,
+        clay_robots: u16,
+        obsidian_robots: u16,
+        geode_robots: u16
     }
 
     let max_ore_robots = blueprint.clay_robot_ore_cost
@@ -158,19 +158,19 @@ fn collect_geodes(blueprint: &Blueprint, minutes: u8) -> u8 {
 
 #[derive(Debug)]
 struct Blueprint {
-    id: u8,
-    ore_robot_ore_cost: u8,
-    clay_robot_ore_cost: u8,
-    obsidian_robot_ore_cost: u8,
-    obsidian_robot_clay_cost: u8,
-    geode_robot_ore_cost: u8,
-    geode_robot_obsidian_cost: u8,
+    id: u16,
+    ore_robot_ore_cost: u16,
+    clay_robot_ore_cost: u16,
+    obsidian_robot_ore_cost: u16,
+    obsidian_robot_clay_cost: u16,
+    geode_robot_ore_cost: u16,
+    geode_robot_obsidian_cost: u16,
 }
 
 impl Blueprint {
     fn new(line: &str) -> Self {
         let mut numbers = line.split(&[' ', ':'])
-            .filter_map(|word| word.parse::<u8>().ok());
+            .filter_map(|word| word.parse::<u16>().ok());
         let id = numbers.next().unwrap();
         let ore_robot_ore_cost = numbers.next().unwrap();
         let clay_robot_ore_cost = numbers.next().unwrap();
