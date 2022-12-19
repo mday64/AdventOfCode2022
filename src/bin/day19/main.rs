@@ -10,28 +10,60 @@ fn main() {
     let result1 = part1(&blueprints);
     println!("Part 1: {}", result1);
     assert_eq!(result1, 1199);
+    
+    let result2 = part2(&blueprints);
+    println!("Part 2: {}", result2);
+    assert_eq!(result2, 3510);
 }
 
-fn part1(blueprints: &[Blueprint]) -> u32 {
+fn part1(blueprints: &[Blueprint]) -> u16 {
     blueprints.par_iter().map(|blueprint|
-        dbg!(blueprint.id) * dbg!(collect_geodes(blueprint, 24))
+        blueprint.id as u16 * collect_geodes(blueprint, 24) as u16
     ).sum()
 }
 
-fn collect_geodes(blueprint: &Blueprint, minutes: u32) -> u32 {
+fn part2(blueprints: &[Blueprint]) -> u32 {
+    // We're not going to use parallel iterators here, since
+    // memory use will explode (more minutes means a deeper
+    // search tree, and more states to track)
+    blueprints.par_iter().take(3).map(|blueprint|
+        collect_geodes(blueprint, 32) as u32
+    ).product()
+}
+
+//
+// Over very long intervals, since your robot factory can only make one
+// robot at a time, you want just enough obsidian robots and ore robots
+// to make just enough obsidian and ore to make one geode robot.
+// To get to that state, you want just enough ore and clay robots to
+// make enough ore and clay to make one obsidian robot.  And so on for
+// the number of ore robots to make one clay robot per minute.
+//
+// All of that means that I don't think we ever need more of a given
+// type of robot than the maximum number of that material needed for
+// any robot.  I think that is a way to prune possible future states.
+//
+fn collect_geodes(blueprint: &Blueprint, minutes: u8) -> u8 {
     // Use a depth-first search to find all combinations
     #[derive(Debug, PartialEq, Eq, Hash, Clone)]
     struct State {
-        minutes: u32,
-        ore: u32,
-        clay: u32,
-        obsidian: u32,
-        geodes: u32,
-        ore_robots: u32,
-        clay_robots: u32,
-        obsidian_robots: u32,
-        geode_robots: u32
+        minutes: u8,
+        ore: u8,
+        clay: u8,
+        obsidian: u8,
+        geodes: u8,
+        ore_robots: u8,
+        clay_robots: u8,
+        obsidian_robots: u8,
+        geode_robots: u8
     }
+
+    let max_ore_robots = blueprint.clay_robot_ore_cost
+        .max(blueprint.obsidian_robot_ore_cost)
+        .max(blueprint.geode_robot_ore_cost);
+    let max_clay_robots = blueprint.obsidian_robot_clay_cost;
+    let max_obsidian_robots = blueprint.geode_robot_obsidian_cost;
+    // There is no max_geode_robots, since we want as many as possible
 
     let start = State {
         minutes, ore: 0, clay: 0, obsidian: 0, geodes: 0,
@@ -48,7 +80,9 @@ fn collect_geodes(blueprint: &Blueprint, minutes: u32) -> u32 {
         // Figure out whether we can start building a new robot.
         // I'm going to assume a max of one new robot, and try them in
         // order from most costly to least costly.
-        if state.ore >= blueprint.geode_robot_ore_cost && state.obsidian >= blueprint.geode_robot_obsidian_cost {
+        if state.ore >= blueprint.geode_robot_ore_cost &&
+            state.obsidian >= blueprint.geode_robot_obsidian_cost
+        {
             result.push(State {
                 minutes,
                 ore: state.ore - blueprint.geode_robot_ore_cost + state.ore_robots,
@@ -59,7 +93,10 @@ fn collect_geodes(blueprint: &Blueprint, minutes: u32) -> u32 {
                 ..*state
             });
         }
-        if state.ore >= blueprint.obsidian_robot_ore_cost && state.clay >= blueprint.obsidian_robot_clay_cost {
+        if state.obsidian_robots < max_obsidian_robots &&
+            state.ore >= blueprint.obsidian_robot_ore_cost &&
+            state.clay >= blueprint.obsidian_robot_clay_cost
+        {
             result.push(State {
                 minutes,
                 ore: state.ore - blueprint.obsidian_robot_ore_cost + state.ore_robots,
@@ -70,7 +107,9 @@ fn collect_geodes(blueprint: &Blueprint, minutes: u32) -> u32 {
                 ..*state
             });
         }
-        if state.ore >= blueprint.clay_robot_ore_cost {
+        if state.clay_robots < max_clay_robots &&
+            state.ore >= blueprint.clay_robot_ore_cost
+        {
             result.push(State {
                 minutes,
                 ore: state.ore - blueprint.clay_robot_ore_cost + state.ore_robots,
@@ -81,7 +120,9 @@ fn collect_geodes(blueprint: &Blueprint, minutes: u32) -> u32 {
                 ..*state
             });
         }
-        if state.ore >= blueprint.ore_robot_ore_cost {
+        if state.ore_robots < max_ore_robots &&
+            state.ore >= blueprint.ore_robot_ore_cost
+        {
             result.push(State {
                 minutes,
                 ore: state.ore - blueprint.ore_robot_ore_cost + state.ore_robots,
@@ -117,19 +158,19 @@ fn collect_geodes(blueprint: &Blueprint, minutes: u32) -> u32 {
 
 #[derive(Debug)]
 struct Blueprint {
-    id: u32,
-    ore_robot_ore_cost: u32,
-    clay_robot_ore_cost: u32,
-    obsidian_robot_ore_cost: u32,
-    obsidian_robot_clay_cost: u32,
-    geode_robot_ore_cost: u32,
-    geode_robot_obsidian_cost: u32,
+    id: u8,
+    ore_robot_ore_cost: u8,
+    clay_robot_ore_cost: u8,
+    obsidian_robot_ore_cost: u8,
+    obsidian_robot_clay_cost: u8,
+    geode_robot_ore_cost: u8,
+    geode_robot_obsidian_cost: u8,
 }
 
 impl Blueprint {
     fn new(line: &str) -> Self {
         let mut numbers = line.split(&[' ', ':'])
-            .filter_map(|word| word.parse::<u32>().ok());
+            .filter_map(|word| word.parse::<u8>().ok());
         let id = numbers.next().unwrap();
         let ore_robot_ore_cost = numbers.next().unwrap();
         let clay_robot_ore_cost = numbers.next().unwrap();
@@ -157,4 +198,14 @@ fn test_part1() {
     ";
     let blueprints: Vec<_> = input.lines().map(Blueprint::new).collect();
     assert_eq!(part1(&blueprints), 33);
+}
+
+#[test]
+fn test_part2() {
+    let input = "\
+    Blueprint 1: Each ore robot costs 4 ore. Each clay robot costs 2 ore. Each obsidian robot costs 3 ore and 14 clay. Each geode robot costs 2 ore and 7 obsidian.\n\
+    Blueprint 2: Each ore robot costs 2 ore. Each clay robot costs 3 ore. Each obsidian robot costs 3 ore and 8 clay. Each geode robot costs 3 ore and 12 obsidian.\n\
+    ";
+    let blueprints: Vec<_> = input.lines().map(Blueprint::new).collect();
+    assert_eq!(part2(&blueprints), 56 * 62);
 }
