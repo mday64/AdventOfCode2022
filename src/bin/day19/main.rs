@@ -9,7 +9,7 @@ fn main() {
     
     let result1 = part1(&blueprints);
     println!("Part 1: {}", result1);
-    assert_eq!(result1, 33);
+    assert_eq!(result1, 1199);
 }
 
 fn part1(blueprints: &[Blueprint]) -> u32 {
