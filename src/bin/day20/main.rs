@@ -1,3 +1,5 @@
+use std::collections::VecDeque;
+
 fn main() {
     let path = std::env::args().skip(1).next()
         .unwrap_or("src/bin/day20/input.txt".into());
@@ -6,31 +8,31 @@ fn main() {
 
     let result1 = part1(&numbers);
     println!("Part 1: {}", result1);
-    assert!(result1 < 15077);
-    assert!(result1 > 13972);
-    // assert_eq!(result1, 0);
+    assert_eq!(result1, 1591);
 }
 
 fn part1(numbers: &[i32]) -> i32 {
-    let len = numbers.len() as i32;
-    let mut mixed = Vec::from(numbers);
-    for number in numbers {
-        // Move number by number places
-        // let shift_by = *number % len;
-        let shift_by = *number;
-
-        // Figure out what position `number` is currently at
-        let src = mixed.iter().position(|v| v == number).unwrap() as i32;
-        let dest = (src + shift_by).rem_euclid(len - 1);
-        assert_eq!(mixed.remove(src as usize), *number);
-        mixed.insert(dest as usize, *number);
-        // println!("{:?}", mixed);
+    let mut mixed:VecDeque<(usize,i32)> = numbers.iter().copied().enumerate().collect();
+    for index in 0..mixed.len() {
+        let pos = mixed.iter().position(|&(i,_)| i == index).unwrap();
+        let (i,number) = mixed.remove(pos).unwrap();
+        assert_eq!(i, index);
+        if number < 0 {
+            // Moving the number to the left is equivalent to moving
+            // the list to the right
+            mixed.rotate_right((number.abs() as usize) % mixed.len());
+        } else {
+            // Moving the number to the right is equivalent to moving
+            // the list to the left
+            mixed.rotate_left((number as usize) % mixed.len());
+        }
+        mixed.insert(pos, (index,number));
     }
 
-    let zero_pos = mixed.iter().position(|&v| v == 0).unwrap();
-    mixed[(zero_pos + 1000) % numbers.len()] +
-    mixed[(zero_pos + 2000) % numbers.len()] +
-    mixed[(zero_pos + 3000) % numbers.len()]
+    let zero_pos = mixed.iter().position(|&(_,v)| v == 0).unwrap();
+    mixed[(zero_pos + 1000) % numbers.len()].1 +
+    mixed[(zero_pos + 2000) % numbers.len()].1 +
+    mixed[(zero_pos + 3000) % numbers.len()].1
 }
 
 fn parse_numbers(s: &str) -> Vec<i32> {
