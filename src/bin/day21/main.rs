@@ -8,7 +8,11 @@ fn main() {
 
     let result1 = part1(&input);
     println!("Part 1: {result1}");
-    assert_eq!(result1, 159591692827554);
+    assert_eq!(result1, 159591692827554.0);
+
+    let result2 = part2(&input);
+    println!("Part 2: {result2}");
+    // assert_eq!(result2, 3509819803069);
 }
 
 fn part1(input: &str) -> MonkeyNumber {
@@ -17,14 +21,65 @@ fn part1(input: &str) -> MonkeyNumber {
 }
 
 fn part2(input: &str) -> MonkeyNumber {
-    let _monkeys = parse_input(input);
+    let mut monkeys = parse_input(input);
 
     // I'm tempted to try changing root's operation to Sub, so that it
     // returns 0 for equality, and try changing humn's value to see how
     // root's value changes.  Hopefully, there is a linear relationship,
-    // and I can extrapolate the correct value for humn.
+    // and I can binary search for the correct value for humn.
+    //
+    // Yes, increasing the value for humn seems to get closer to 0
+    // (for both the sample input and my full input).  So I'm going to
+    // keep doubling the value until it crosses zero, then binary search
+    // to find the exact value.
 
-    todo!()
+    let root = monkeys.get_mut("root").unwrap();
+    if let MonkeyJob::Add(l, r) = root {
+        *root = MonkeyJob::Sub(l, r);
+    }
+
+    // Get humn's current value
+    let MonkeyJob::Yell(human_val) = monkeys.get("humn").copied().unwrap() else {
+        panic!("Invalid job for humn")
+    };
+
+    let mut low = human_val;
+    let mut high = human_val * 2.0;
+    let mut low_result = human_eval(low, &mut monkeys);
+    let mut high_result = human_eval(high, &mut monkeys);
+    while low_result.signum() == high_result.signum() {
+        low = high;
+        low_result = high_result;
+        high *= 2.0;
+        high_result = human_eval(high, &mut monkeys);
+    }
+    // println!("Somewhere between:");
+    // println!("    {} => {}", low, human_eval(low, &mut monkeys));
+    // println!("    {} => {}", high, human_eval(high, &mut monkeys));
+
+    let mut guess = (low + high) / 2.0;
+    while (high - low) > 1.0 {
+        guess = (low + high) / 2.0;
+        let guess_result = human_eval(guess, &mut monkeys);
+        if guess_result == 0.0 { break; }
+        if guess_result.signum() == low_result.signum() {
+            low = guess;
+        } else {
+            high = guess;
+        }
+    }
+    dbg!(low);
+    dbg!(high);
+    dbg!(guess);
+
+    // There appear to be multiple valid answers!
+    // for possible in low ..= high {
+    //     if human_eval(possible, &mut monkeys) == 0 {
+    //         println!("possible: {possible}");
+    //     }
+    // }
+    
+    high.floor()
 }
 
 fn monkey_eval(name: &str, monkeys: &HashMap<&str, MonkeyJob>) -> MonkeyNumber {
@@ -40,6 +95,12 @@ fn monkey_eval(name: &str, monkeys: &HashMap<&str, MonkeyJob>) -> MonkeyNumber {
             monkey_eval(left, monkeys) / monkey_eval(right, monkeys),
     };
     result
+}
+
+fn human_eval(human: MonkeyNumber, monkeys: &mut HashMap<&str, MonkeyJob>) -> MonkeyNumber {
+    // Change the value that "humn" yells, and evaluate "root"
+    monkeys.insert("humn", MonkeyJob::Yell(human));
+    monkey_eval("root", monkeys)
 }
 
 fn parse_input(input: &str) -> HashMap<&str, MonkeyJob> {
@@ -65,8 +126,9 @@ fn parse_input(input: &str) -> HashMap<&str, MonkeyJob> {
     monkeys
 }
 
-type MonkeyNumber = i64;
+type MonkeyNumber = f64;
 
+#[derive(Clone, Copy)]
 enum MonkeyJob<'a> {
     Yell(MonkeyNumber),
     Add(&'a str, &'a str),
@@ -94,7 +156,7 @@ lgvd: ljgn * ptdq
 drzm: hmdt - zczc
 hmdt: 32
 ";
-    assert_eq!(part1(input), 152);
+    assert_eq!(part1(input), 152.0);
 }
 
 #[test]
@@ -116,5 +178,33 @@ lgvd: ljgn * ptdq
 drzm: hmdt - zczc
 hmdt: 32
 ";
-    assert_eq!(part2(input), 301);
+    assert_eq!(part2(input), 301.0);
+}
+
+#[test]
+fn test_part2_alt_answer() {
+    let input = "\
+root: pppw + sjmn
+dbpl: 5
+cczh: sllz + lgvd
+zczc: 2
+ptdq: humn - dvpt
+dvpt: 3
+lfqf: 4
+humn: 5
+ljgn: 2
+sjmn: drzm * dbpl
+sllz: 4
+pppw: cczh / lfqf
+lgvd: ljgn * ptdq
+drzm: hmdt - zczc
+hmdt: 32
+";
+    let mut monkeys = parse_input(input);
+    monkeys.insert("humn", MonkeyJob::Yell(302.0));
+    let pppw = monkey_eval("pppw", &monkeys);
+    let sjmn = monkey_eval("sjmn", &monkeys);
+    dbg!(pppw);
+    dbg!(sjmn);
+    assert_eq!(pppw, sjmn);
 }
