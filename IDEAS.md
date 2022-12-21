@@ -38,3 +38,8 @@ Consider partitioning the set of "interesting" valves (the ones with non-zero fl
 For a given partition, we could find the optimal path for each of {human, elephant} in separate threads, for up to 2X speedup.  When trying multiple partitions, we could parallelize those, too.
 
 Is there a way to order the partitions such that we start by trying partitions that are "more even"?  Perhaps trying to assign similar total flow rates?
+
+# Day 20
+Investigate a data structure that makes finding, removing, and inserting an element faster than O(n).  Then revert back to the remove/insert way of moving an element.  Note: requires being able to get an item's index, and insert at index; whereas finding an element is "by value" (using the index created by the enumerate() method).
+
+Current solution keeps the element's original index with the number value.  Does it make sense to separate those?  Would it be better to mix a Vec of the original indices, and have another Vec of the values?  Looking up a value in the mixed lists would require first looking in the Vec of indices, then using that to look up in the Vec of values.
