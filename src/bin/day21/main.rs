@@ -12,26 +12,7 @@ fn main() {
 }
 
 fn part1(input: &str) -> MonkeyNumber {
-    let mut monkeys = HashMap::<&str, MonkeyInfo>::new();
-
-    // Parse the input
-    for line in input.lines() {
-        let (name, job) = line.split_once(": ").unwrap();
-        if let Ok(num) = job.parse::<MonkeyNumber>() {
-            monkeys.insert(name, MonkeyInfo{cached: Some(num), job: MonkeyJob::Yell(num)});
-        } else {
-            let (left, operator, right) = job.split(' ').collect_tuple().unwrap();
-            let job = match operator {
-                "+" => MonkeyJob::Add(left, right),
-                "-" => MonkeyJob::Sub(left, right),
-                "*" => MonkeyJob::Mul(left, right),
-                "/" => MonkeyJob::Div(left, right),
-                _ => panic!("Invalid operation: {}", job)
-            };
-            monkeys.insert(name, MonkeyInfo{cached: None, job});
-        }
-    }
-
+    let mut monkeys = parse_input(input);
     monkey_eval("root", &mut monkeys)
 }
 
@@ -54,6 +35,29 @@ fn monkey_eval(name: &str, monkeys: &mut HashMap<&str, MonkeyInfo>) -> MonkeyNum
     };
     monkeys.get_mut(name).unwrap().cached = Some(result);
     result
+}
+
+fn parse_input(input: &str) -> HashMap<&str, MonkeyInfo> {
+    let mut monkeys = HashMap::<&str, MonkeyInfo>::new();
+
+    for line in input.lines() {
+        let (name, job) = line.split_once(": ").unwrap();
+        if let Ok(num) = job.parse::<MonkeyNumber>() {
+            monkeys.insert(name, MonkeyInfo{cached: Some(num), job: MonkeyJob::Yell(num)});
+        } else {
+            let (left, operator, right) = job.split(' ').collect_tuple().unwrap();
+            let job = match operator {
+                "+" => MonkeyJob::Add(left, right),
+                "-" => MonkeyJob::Sub(left, right),
+                "*" => MonkeyJob::Mul(left, right),
+                "/" => MonkeyJob::Div(left, right),
+                _ => panic!("Invalid operation: {}", job)
+            };
+            monkeys.insert(name, MonkeyInfo{cached: None, job});
+        }
+    }
+
+    monkeys
 }
 
 type MonkeyNumber = i64;
