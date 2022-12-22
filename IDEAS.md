@@ -43,3 +43,8 @@ Is there a way to order the partitions such that we start by trying partitions t
 Investigate a data structure that makes finding, removing, and inserting an element faster than O(n).  Then revert back to the remove/insert way of moving an element.  Note: requires being able to get an item's index, and insert at index; whereas finding an element is "by value" (using the index created by the enumerate() method).
 
 Current solution keeps the element's original index with the number value.  Does it make sense to separate those?  Would it be better to mix a Vec of the original indices, and have another Vec of the values?  Looking up a value in the mixed lists would require first looking in the Vec of indices, then using that to look up in the Vec of values.
+
+# Day 21
+For part 2, convert to an equality equation, and figure out how to solve for "humn" directly by back substituting and inverting operations as needed.
+
+I think the branch (of "root") that contains "humn" can be simplified bottom-up to something of the form "m * humn + c".  The other branch will evaluate to a constant (call it "k").  Then you'd have m * humn + c = k.  Solving for humn: humn = (k - c) / m.

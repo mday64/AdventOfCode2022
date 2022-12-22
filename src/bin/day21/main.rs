@@ -37,11 +37,14 @@ fn part2(input: &str) -> MonkeyNumber {
     let root = monkeys.get_mut("root").unwrap();
     if let MonkeyJob::Add(l, r) = root {
         *root = MonkeyJob::Sub(l, r);
+    } else {
+        panic!("root should be addition!");
     }
 
     // Get humn's current value
-    let MonkeyJob::Yell(human_val) = monkeys.get("humn").copied().unwrap() else {
-        panic!("Invalid job for humn")
+    let human_val = match monkeys.get("humn").unwrap() {
+        MonkeyJob::Yell(v) => *v,
+        _ => panic!("humn should be a number (Yell)")
     };
 
     let mut low = human_val;
