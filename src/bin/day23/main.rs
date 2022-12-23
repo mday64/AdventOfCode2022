@@ -8,7 +8,7 @@ fn main() {
 
     let result1 = part1(&input);
     println!("Part 1: {result1}");
-    assert!(result1 < 4374);
+    assert_eq!(result1, 3882);
 }
 
 //
@@ -47,6 +47,21 @@ fn part1(input: &str) -> usize {
         let mut proposed_positions = HashMultiSet::<Point>::new();
 
         for &Point{x,y} in positions.iter() {
+            if !positions.contains(&Point{x: x-1, y: y-1}) &&
+               !positions.contains(&Point{x,      y: y-1}) &&
+               !positions.contains(&Point{x: x+1, y: y-1}) &&
+               !positions.contains(&Point{x: x-1, y     }) &&
+               !positions.contains(&Point{x: x+1, y     }) &&
+               !positions.contains(&Point{x: x-1, y: y+1}) &&
+               !positions.contains(&Point{x     , y: y+1}) &&
+               !positions.contains(&Point{x: x+1, y: y+1})
+            {
+                // The elf stays where it is
+                proposed_moves.insert(Point{x,y}, Point{x,y});
+                proposed_positions.insert(Point{x,y});
+                continue;
+            }
+
             let mut new_x = x;
             let mut new_y = y;
             for dir in directions.iter().copied() {
@@ -57,6 +72,7 @@ fn part1(input: &str) -> usize {
                            !positions.contains(&Point{x: x+1, y: y-1})
                         {
                             new_y = y - 1;
+                            break;
                         }
                     },
                     South => {
@@ -65,6 +81,7 @@ fn part1(input: &str) -> usize {
                            !positions.contains(&Point{x: x+1, y: y+1})
                         {
                             new_y = y + 1;
+                            break;
                         }
                     },
                     West => {
@@ -73,6 +90,7 @@ fn part1(input: &str) -> usize {
                            !positions.contains(&Point{x: x-1, y: y+1})
                         {
                             new_x = x - 1;
+                            break;
                         }
                     },
                     East => {
@@ -81,6 +99,7 @@ fn part1(input: &str) -> usize {
                            !positions.contains(&Point{x: x+1, y: y+1})
                         {
                             new_x = x + 1;
+                            break;
                         }
                     },
                 }
