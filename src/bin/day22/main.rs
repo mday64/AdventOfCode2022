@@ -168,7 +168,7 @@ mod part2 {
         let cc = state.col % state.side;
 
         // These are the tentative spot to wrap around to
-        let mut row = state.row;
+        let row;
         let mut col = state.col;
         let mut facing = state.facing;
 
