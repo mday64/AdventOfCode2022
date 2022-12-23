@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use nom::{IResult, branch::alt, bytes::complete::tag, multi::many1, character, Parser};
+use part2::part2;
 
 fn main() {
     let path = std::env::args().skip(1).next()
@@ -9,25 +10,14 @@ fn main() {
     let result1 = part1(&input);
     println!("Part 1: {result1}");
     assert_eq!(result1, 67390);
+
+    let result2 = part2(&input);
+    println!("Part 2: {result2}");
+    assert_eq!(result2, 67390);
 }
 
 fn part1(input: &str) -> i32 {
-    // Parse the input
-    let (board_str, moves) = input.split_once("\n\n").unwrap();
-    let moves = moves.trim_end();
-    let mut board = HashMap::<(i32, i32), Board>::new();
-    for (row,line) in board_str.lines().enumerate() {
-        for (col, ch) in line.chars().enumerate() {
-            match ch {
-                '.' => { board.insert((row as i32, col as i32), Board::Open); },
-                '#' => { board.insert((row as i32, col as i32), Board::Wall); },
-                _ => {}
-            };
-        }
-    }
-
-    // Split `moves` into runs of digits or single letter
-    let moves = parse_moves(moves).unwrap().1;
+    let (board, moves) = parse_input(input);
 
     // Find the starting position (the first Open in row #0)
     let mut facing = Facing::Right;
@@ -109,6 +99,36 @@ fn board_try_move(
     }
 }
 
+mod part2 {
+    use crate::*;
+
+    pub fn part2(input: &str) -> i32 {
+        let (board, moves) = parse_input(input);
+
+        todo!()
+    }
+}
+
+fn parse_input(input: &str) -> (HashMap<(i32, i32), Board>, Vec<Move>) {
+    let (board_str, moves) = input.split_once("\n\n").unwrap();
+    let moves = moves.trim_end();
+    let mut board = HashMap::<(i32, i32), Board>::new();
+    for (row,line) in board_str.lines().enumerate() {
+        for (col, ch) in line.chars().enumerate() {
+            match ch {
+                '.' => { board.insert((row as i32, col as i32), Board::Open); },
+                '#' => { board.insert((row as i32, col as i32), Board::Wall); },
+                _ => {}
+            };
+        }
+    }
+
+    // Split `moves` into runs of digits or single letter
+    let moves = parse_moves(moves).unwrap().1;
+
+    (board, moves)
+}
+
 fn parse_moves(s: &str) -> IResult<&str,Vec<Move>> {
     many1(alt((
         tag("L").map(|_| Move::Left),
@@ -179,4 +199,24 @@ fn test_part1() {
 10R5L5R10L4R5L5
 ";
     assert_eq!(part1(input), 6032);
+}
+
+#[test]
+fn test_part2() {
+    let input = "        ...#
+        .#..
+        #...
+        ....
+...#.......#
+........#...
+..#....#....
+..........#.
+        ...#....
+        .....#..
+        .#......
+        ......#.
+
+10R5L5R10L4R5L5
+";
+    assert_eq!(part2(input), 5031);
 }
