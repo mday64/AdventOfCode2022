@@ -11,9 +11,9 @@ fn main() {
     println!("Part 1: {result1}");
     assert_eq!(result1, 67390);
 
-    let result2 = part2(&input);
+    let result2 = part2(&input, 50);
     println!("Part 2: {result2}");
-    assert_eq!(result2, 67390);
+    assert!(result2 < 150403);
 }
 
 fn part1(input: &str) -> i32 {
@@ -102,10 +102,191 @@ fn board_try_move(
 mod part2 {
     use crate::*;
 
-    pub fn part2(input: &str) -> i32 {
-        let (board, moves) = parse_input(input);
+    struct State {
+        board: HashMap<(i32, i32), Board>,
+        row: i32,
+        col: i32,
+        facing: Facing,
+        side: i32
+    }
 
-        todo!()
+    pub fn part2(input: &str, side_length: i32) -> i32 {
+        let (board, moves) = parse_input(input);
+        let mut state = State {
+            board,
+            row: 0,
+            col: 0,
+            facing: Facing::Right,
+            side: side_length
+        };
+        state.col = state.board.keys().filter(|(r,_)| *r==0).map(|(_,c)| *c).min().unwrap();
+
+        // Follow the moves, with possible wrap-around
+        for m in moves {
+            match m {
+                Move::Left => {
+                    state.facing = state.facing.turn_left();
+                },
+                Move::Right => {
+                    state.facing = state.facing.turn_right();
+                },
+                Move::Number(num) => {
+                    for _ in 0 .. num {
+                        // Try to move one space in the current direction
+                        // with wrap-around
+                        try_move(&mut state);
+                    }
+                },
+            }
+        }
+
+        // Compute the "password"
+        1000 * (state.row + 1) + 4 * (state.col + 1) + (state.facing as i32)
+    }
+
+    fn try_move(state: &mut State) {
+        let (d_row, d_col) = match state.facing {
+            Facing::Right => (0, 1),
+            Facing::Left => (0, -1),
+            Facing::Up => (-1, 0),
+            Facing::Down => (1, 0),
+        };
+    
+        // If the new position is open, move there
+        let result = state.board.get(&(state.row+d_row, state.col+d_col));
+        match result {
+            Some(&Board::Open) => { state.row += d_row; state.col += d_col; },
+            Some(&Board::Wall) => { return; },
+            None => {}
+        }
+    
+        // Wrap around.  Where we go depends on which cube face we are
+        // coming from.  We figure that out by dividing the row or col
+        // by the side length.  We use `%` to figure out how far along
+        // the side we are.
+        let rr = state.row % state.side;
+        let cc = state.col % state.side;
+
+        // These are the tentative spot to wrap around to
+        let mut row = state.row;
+        let mut col = state.col;
+        let mut facing = state.facing;
+
+        match state.facing {
+            Facing::Right => {
+                match state.row / state.side {
+                    0 => {
+                        // Face #2 => Face #5, upside down, going left
+                        row = state.side * 3 - 1 - rr;
+                        col = state.side * 2 - 1;
+                        facing = Facing::Left;
+                    },
+                    1 => {
+                        // Face #3 => Face #2, going up
+                        col = state.side * 2 + rr;
+                        row = state.side - 1;
+                        facing = Facing::Up;
+                    },
+                    2 => {
+                        // Face # 5 => Face #2, upside down
+                        row = state.side - 1 - rr;
+                        col = state.side * 3 - 1;
+                        facing = Facing::Left;
+                    },
+                    3 => {
+                        // Face #6 => Face #5, going up
+                        col = state.side + rr;
+                        row = state.side * 3 - 1;
+                        facing = Facing::Up;
+                    },
+                    _ => panic!("Invalid row")
+                }
+            },
+            Facing::Down => {
+                match state.col / state.side {
+                    0 => {
+                        // Face #6 => Face #2 (down)
+                        row = 0;
+                        col += state.side * 2;
+                    },
+                    1 => {
+                        // Face # 5 => Face #6, going left
+                        row = state.side * 3 + cc;
+                        col = state.side - 1;
+                        facing = Facing::Left;
+                    },
+                    2 => {
+                        // Face # 2 => Face # 3, going left
+                        row = state.side + cc;
+                        col = state.side * 2 - 1;
+                        facing = Facing::Left;
+                    },
+                    _ => panic!("Invalid col")
+                }
+            },
+            Facing::Left => {
+                match state.row / state.side {
+                    0 => {
+                        // Face #1 => Face #4, upside down, going right
+                        row = state.side * 3 - 1 - rr;
+                        col = 0;
+                        facing = Facing::Right;
+                    },
+                    1 => {
+                        // Face #3 => Face #4, going down
+                        col = rr;
+                        row = state.side * 2;
+                        facing = Facing::Down;
+                    },
+                    2 => {
+                        // Face #4 => Face #1, upside down, goint right
+                        row = state.side - 1 - rr;
+                        col = state.side;
+                        facing = Facing::Right;
+                    },
+                    3 => {
+                        // Face #6 => Face #1, going down
+                        col = state.side + rr;
+                        row = 0;
+                        facing = Facing::Down;
+                    },
+                    _ => panic!("Invalid row")
+                }
+            },
+            Facing::Up => {
+                match state.col / state.side {
+                    0 => {
+                        // Face #4 => Face #3, going right
+                        row = state.side + cc;
+                        col = state.side;
+                        facing = Facing::Right;
+                    },
+                    1 => {
+                        // Face #1 => Face #6, going right
+                        row = state.side * 3 + cc;
+                        col = 0;
+                        facing = Facing::Right;
+                    },
+                    2 => {
+                        // Face #2 => Face #6, going up
+                        col -= state.side * 2;
+                        row = state.side * 4 - 1;
+                    },
+                    _ => panic!("Invalid col")
+                }
+            },
+        }
+        match state.board.get(&(row, col)) {
+            Some(&Board::Open) => {
+                state.row = row;
+                state.col = col;
+                state.facing = facing;
+            },
+            Some(&Board::Wall) => {
+                // Can't move to a wall
+            },
+            None => panic!("Invalid wrap around")
+        }
     }
 }
 
@@ -199,24 +380,4 @@ fn test_part1() {
 10R5L5R10L4R5L5
 ";
     assert_eq!(part1(input), 6032);
-}
-
-#[test]
-fn test_part2() {
-    let input = "        ...#
-        .#..
-        #...
-        ....
-...#.......#
-........#...
-..#....#....
-..........#.
-        ...#....
-        .....#..
-        .#......
-        ......#.
-
-10R5L5R10L4R5L5
-";
-    assert_eq!(part2(input), 5031);
 }
