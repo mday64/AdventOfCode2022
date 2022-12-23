@@ -7,9 +7,13 @@ fn main() {
     let input = std::fs::read_to_string(path).unwrap();
     let positions = parse_input(&input);
 
-    let result1 = part1(positions);
+    let result1 = part1(positions.clone());
     println!("Part 1: {result1}");
     assert_eq!(result1, 3882);
+
+    let result2 = part2(positions);
+    println!("Part 2: {result2}");
+    assert_eq!(result2, 1116);
 }
 
 //
@@ -30,8 +34,13 @@ fn main() {
 //      on the value to do the direction-dependent logic.
 //
 fn part1(mut positions: HashSet<Point>) -> usize {
-    use Direction::*;
-    let mut directions = vec![North, South, West, East];
+    let mut directions = vec![
+        Direction::North,
+        Direction::South,
+        Direction::West,
+        Direction::East
+    ];
+
     for _ in 0 .. 10 {
         one_round(&mut positions, &mut directions);
     }
@@ -48,6 +57,26 @@ fn part1(mut positions: HashSet<Point>) -> usize {
         max_y = max_y.max(p.y);
     }
     (max_x - min_x + 1) as usize * (max_y - min_y + 1) as usize - positions.len()
+}
+
+fn part2(mut positions: HashSet<Point>) -> u32 {
+    let mut directions = vec![
+        Direction::North,
+        Direction::South,
+        Direction::West,
+        Direction::East
+    ];
+
+    let mut rounds = 0;
+    loop {
+        rounds += 1;
+        let moved = one_round(&mut positions, &mut directions);
+        if !moved {
+            break;
+        }
+    }
+    
+    rounds
 }
 
 // Do one round of movements.
@@ -153,7 +182,7 @@ fn parse_input(input: &str) -> HashSet<Point> {
     positions
 }
 
-#[derive(Hash, PartialEq, Eq)]
+#[derive(Hash, Clone, PartialEq, Eq)]
 struct Point {
     x: i32,
     y: i32,
@@ -180,4 +209,19 @@ fn test_part1() {
 ";
     let positions = parse_input(input);
     assert_eq!(part1(positions), 110);
+}
+
+#[test]
+fn test_part2() {
+    let input = "\
+....#..
+..###.#
+#...#.#
+.#...##
+#.###..
+##.#.##
+.#..#..
+";
+    let positions = parse_input(input);
+    assert_eq!(part2(positions), 20);
 }
