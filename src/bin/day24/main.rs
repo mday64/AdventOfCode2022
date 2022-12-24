@@ -98,13 +98,7 @@ fn part1(input: &str) -> i32 {
         let mut result = Vec::new();
         for d_point in [Point::new(1, 0), Point::new(0, 1), Point::new(0, 0), Point::new(-1, 0), Point::new(0, -1)] {
             let position = state.position + d_point;
-            if position.x < 0 ||position.y < 0 ||
-               position.x >= width || position.y >= height ||
-               walls.contains(&position)
-            {
-                continue;
-            }
-            if !blizzard_positions.contains(&position) {
+            if !walls.contains(&position) && !blizzard_positions.contains(&position) {
                 result.push((State{position, blizzards: moved_blizzards.clone()}, 1));
             }
         }
@@ -125,8 +119,8 @@ fn part2(input: &str) -> i32 {
         state.position.dist(&end)
     };
     let heuristic_start = |state: &State| -> i32 {
-        // Minimum cost: Manhattan distance to the end point
-        state.position.dist(&Point::new(1,0))
+        // Minimum cost: Manhattan distance to the starting point
+        state.position.dist(&start)
     };
     let successors = |state: &State| -> Vec<(State, i32)> {
         // Compute new locations of the blizzards
@@ -171,13 +165,7 @@ fn part2(input: &str) -> i32 {
         let mut result = Vec::new();
         for d_point in [Point::new(1, 0), Point::new(0, 1), Point::new(0, 0), Point::new(-1, 0), Point::new(0, -1)] {
             let position = state.position + d_point;
-            if position.x < 0 ||position.y < 0 ||
-               position.x >= width || position.y >= height ||
-               walls.contains(&position)
-            {
-                continue;
-            }
-            if !blizzard_positions.contains(&position) {
+            if !walls.contains(&position) && !blizzard_positions.contains(&position) {
                 result.push((State{position, blizzards: moved_blizzards.clone()}, 1));
             }
         }
@@ -222,6 +210,11 @@ fn parse_input(input: &str) -> (Vec<(Point, Direction)>, HashSet<Point>, i32, i3
         }
     }
 
+    // Insert walls just beyond the start and end positions to keep from
+    // trying to go around the outside.
+    walls.insert(Point::new(1, -1));
+    walls.insert(Point::new(width - 2, height));
+
     (blizzards, walls, width, height)
 }
 
@@ -265,6 +258,7 @@ impl Add for Point {
 
 impl AddAssign for Point {
     fn add_assign(&mut self, rhs: Self) {
-        *self = *self + rhs
+        self.x += rhs.x;
+        self.y += rhs.y;
     }
 }
