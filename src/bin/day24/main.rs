@@ -116,10 +116,10 @@ fn part1(input: &str) -> i32 {
 
 fn part2(input: &str) -> i32 {
     let (blizzards, walls, width, height) = parse_input(&input);
-    let start = State{ position: Point::new(1,0), blizzards };
+    let start = Point::new(1,0);
     let end = Point::new(width-2, height-1);
     let success_end = |state: &State| state.position == end;
-    let success_start = |state: &State| state.position == Point::new(1,0);
+    let success_start = |state: &State| state.position == start;
     let heuristic_end = |state: &State| -> i32 {
         // Minimum cost: Manhattan distance to the end point
         state.position.dist(&end)
@@ -187,7 +187,8 @@ fn part2(input: &str) -> i32 {
     let mut total_steps = 0;
 
     // Go from start to end
-    let (path, steps) = astar(&start, successors, heuristic_end, success_end).unwrap();
+    let initial_state = State{position: start, blizzards};
+    let (path, steps) = astar(&initial_state, successors, heuristic_end, success_end).unwrap();
     total_steps += dbg!(steps);
 
     // Go from end to start
