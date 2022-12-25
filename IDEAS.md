@@ -48,3 +48,8 @@ Current solution keeps the element's original index with the number value.  Does
 For part 2, convert to an equality equation, and figure out how to solve for "humn" directly by back substituting and inverting operations as needed.
 
 I think the branch (of "root") that contains "humn" can be simplified bottom-up to something of the form "m * humn + c".  The other branch will evaluate to a constant (call it "k").  Then you'd have m * humn + c = k.  Solving for humn: humn = (k - c) / m.
+
+# Day 24
+Rather than moving every blizzard by one for every call to `successors`, we can take advantage of their wrap-around behavior, plus the fact that every blizzard stays in its own row or column.  Adjust the coordinates so that the top row and left column of rock are both at -1.  That way, the interior of the rectangle has coordinates that go from 0..width and 0..height.  The position of a blizzard is just M+c % width, or M+c % height.
+
+Further, if we keep track of the non-changing coordinate, we can search for only those blizzards that are within one row or column of our current position.  (I think this means keeping track of horizontal vs. vertical movements separately.)
