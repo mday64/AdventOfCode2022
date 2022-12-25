@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, fmt::Display};
 use nom::{IResult, branch::alt, bytes::complete::tag, multi::many1, character, Parser};
 use part2::part2;
 
@@ -13,7 +13,7 @@ fn main() {
 
     let result2 = part2(&input, 50);
     println!("Part 2: {result2}");
-    assert!(result2 < 150403);
+    assert_eq!(result2, 95291);
 }
 
 fn part1(input: &str) -> i32 {
@@ -155,8 +155,15 @@ mod part2 {
         // If the new position is open, move there
         let result = state.board.get(&(state.row+d_row, state.col+d_col));
         match result {
-            Some(&Board::Open) => { state.row += d_row; state.col += d_col; },
-            Some(&Board::Wall) => { return; },
+            Some(&Board::Open) => {
+                state.row += d_row;
+                state.col += d_col;
+                return;
+            },
+            Some(&Board::Wall) => {
+                println!("WALL");
+                return;
+            },
             None => {}
         }
     
@@ -331,6 +338,17 @@ enum Facing {
     Down = 1,
     Left = 2,
     Up = 3
+}
+
+impl Display for Facing {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Facing::Right => write!(f, "Right"),
+            Facing::Down => write!(f, "Down"),
+            Facing::Left => write!(f, "Left"),
+            Facing::Up => write!(f, "Up"),
+        }
+    }
 }
 
 impl Facing {
