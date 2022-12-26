@@ -1,8 +1,8 @@
 use std::str::FromStr;
 
 fn main() {
-    let path = std::env::args().skip(1).next()
-        .unwrap_or("src/bin/day05/input.txt".into());
+    let path = std::env::args().nth(1)
+        .unwrap_or_else(|| "src/bin/day05/input.txt".into());
     let input = std::fs::read_to_string(path)
         .expect("Can't read input");
 

@@ -2,8 +2,8 @@ use std::collections::HashSet;
 use itertools::Itertools;
 
 fn main() {
-    let path = std::env::args().skip(1).next()
-        .unwrap_or("src/bin/day08/input.txt".into());
+    let path = std::env::args().nth(1)
+        .unwrap_or_else(|| "src/bin/day08/input.txt".into());
     let input = std::fs::read_to_string(path).unwrap();
     
     let (num_rows, num_cols, grid) = parse_input(&input);
@@ -30,7 +30,7 @@ fn main() {
 // construct a HashSet of visible coordinates in order to remove
 // duplicates.
 //
-fn part1(num_rows: usize, num_cols: usize, grid: &Vec<Vec<i8>>) -> usize {
+fn part1(num_rows: usize, num_cols: usize, grid: &[Vec<i8>]) -> usize {
     let mut visible = HashSet::<(usize, usize)>::new();
     for row in 0..num_rows {
         // Looking from left

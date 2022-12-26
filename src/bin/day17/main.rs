@@ -1,17 +1,17 @@
 fn main() {
-    let path = std::env::args().skip(1).next()
-        .unwrap_or("src/bin/day17/input.txt".into());
+    let path = std::env::args().nth(1)
+        .unwrap_or_else(|| "src/bin/day17/input.txt".into());
     let input = std::fs::read_to_string(path).unwrap();
     let input = input.trim_end();
 
     let now = std::time::Instant::now();
-    let result1 = part1(&input);
+    let result1 = part1(input);
     let duration = now.elapsed().as_secs_f64();
     println!("Part 1: {} (in {} seconds)", result1, duration);
     // assert_eq!(result1, 3161);
 
     let now = std::time::Instant::now();
-    let result2 = part2(&input);
+    let result2 = part2(input);
     let duration = now.elapsed().as_secs_f64();
     println!("Part 2: {} (in {} seconds)", result2, duration);
     // assert_eq!(result2, 0);

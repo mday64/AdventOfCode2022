@@ -2,8 +2,8 @@ use std::collections::HashMap;
 use pathfinding::prelude::dijkstra_all;
 
 fn main() {
-    let path = std::env::args().skip(1).next()
-        .unwrap_or("src/bin/day16/input.txt".into());
+    let path = std::env::args().nth(1)
+        .unwrap_or_else(|| "src/bin/day16/input.txt".into());
     let input = std::fs::read_to_string(path).unwrap();
 
     let result1 = part1(&input);
@@ -35,7 +35,7 @@ fn part1(input: &str) -> i32 {
         minutes: i32,
         closed: Vec<String>
     }
-    let input = parse_input(&input);
+    let input = parse_input(input);
     let paths = all_pairs_shortest_paths(&input);
     let valve_names = input.iter().filter_map(|(name, valve)| {
         if valve.flow > 0 {
@@ -44,7 +44,7 @@ fn part1(input: &str) -> i32 {
             None
         }
         }).collect::<Vec<_>>();
-    let initial = State { location: "AA".to_string(), minutes: 30, closed: valve_names.clone() };
+    let initial = State { location: "AA".to_string(), minutes: 30, closed: valve_names };
     let successors = |state: &State| -> Vec<(State, i32)> {
         let mut result = Vec::new();
         // Consider each of the remaining closed valves
@@ -101,7 +101,7 @@ fn part2(input: &str) -> i32 {
         todo: Vec<String>       // Closed valves not yet handled
     }
 
-    let input = parse_input(&input);
+    let input = parse_input(input);
     let pairs = all_pairs_shortest_paths(&input);
     let todo = input.iter().filter_map(|(name, valve)| {
         if valve.flow > 0 {
@@ -121,7 +121,7 @@ fn part2(input: &str) -> i32 {
     let successors = |state: &State| -> Vec<(State, i32)> {
         let mut result = vec![];
 
-        if state.todo.len() == 0 || state.minutes <= 0 {
+        if state.todo.is_empty() || state.minutes <= 0 {
             // No more valves to consider, so we're done
             return result;
         }
@@ -139,7 +139,7 @@ fn part2(input: &str) -> i32 {
                     result.push((new_state, cost));
                 }
             }
-            if result.len() > 0 {
+            if !result.is_empty() {
                 return result;
             }
         }
@@ -157,7 +157,7 @@ fn part2(input: &str) -> i32 {
                     result.push((new_state, cost));
                 }
             }
-            if result.len() > 0 {
+            if !result.is_empty() {
                 return result;
             }
         }
@@ -195,7 +195,7 @@ fn part2b(input: &str) -> i32 {
         minutes: i32,
         closed: Vec<String>
     }
-    let input = parse_input(&input);
+    let input = parse_input(input);
     let paths = all_pairs_shortest_paths(&input);
     let valve_names = input.iter().filter_map(|(name, valve)| {
         if valve.flow > 0 {

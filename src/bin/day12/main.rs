@@ -2,8 +2,8 @@ use std::collections::HashMap;
 use pathfinding::directed::{astar::astar, bfs::bfs};
 
 fn main() {
-    let path = std::env::args().skip(1).next()
-        .unwrap_or("src/bin/day12/input.txt".into());
+    let path = std::env::args().nth(1)
+        .unwrap_or_else(|| "src/bin/day12/input.txt".into());
     let input = std::fs::read_to_string(path).unwrap();
 
     let result1 = part1(&input);
@@ -20,7 +20,7 @@ fn part1(input: &str) -> i32 {
     let successors = |node: &Coord| {
         let node_height = input.heights[node];
         input.neighbors(node).into_iter()
-            .filter(|other| input.heights[&other] <= node_height + 1)
+            .filter(|other| input.heights[other] <= node_height + 1)
             .map(|other| (other, 1))
             .collect::<Vec<(Coord, i32)>>()
     };
@@ -47,7 +47,7 @@ fn part2(input: &str) -> usize {
     let successors = |node: &Coord| {
         let node_height = input.heights[node];
         input.neighbors(node).into_iter()
-            .filter(|other| input.heights[&other] >= node_height - 1)
+            .filter(|other| input.heights[other] >= node_height - 1)
             .collect::<Vec<Coord>>()
     };
     bfs(&input.ending_point, successors, success).unwrap().len() - 1
@@ -107,7 +107,7 @@ fn parse_input(input: &str) -> Input {
 impl Input {
     fn neighbors(&self, node: &Coord) -> Vec<Coord> {
         node.neighbors().into_iter().filter(|other|
-            self.heights.contains_key(&other)
+            self.heights.contains_key(other)
         ).collect()
     }
 }

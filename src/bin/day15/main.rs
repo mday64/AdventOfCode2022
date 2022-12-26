@@ -2,8 +2,8 @@ use std::{fmt::Debug, ops::{Add, Sub}, str::FromStr};
 use aoc2022::RangeSet;
 
 fn main() {
-    let path = std::env::args().skip(1).next()
-        .unwrap_or("src/bin/day15/input.txt".into());
+    let path = std::env::args().nth(1)
+        .unwrap_or_else(|| "src/bin/day15/input.txt".into());
     let input = std::fs::read_to_string(path).unwrap();
     let input = input.lines().map(parse_line::<i32>).collect::<Vec<_>>();
 
@@ -109,19 +109,19 @@ fn parse_line<T>(mut line: &str) -> (Point<T>, Point<T>)
 where T: FromStr, <T as FromStr>::Err: Debug
 {
     let mut left = line.find("x=").unwrap();
-    let mut right = line.find(",").unwrap();
+    let mut right = line.find(',').unwrap();
     let mut x = line[left+2..right].parse::<T>().unwrap();
     line = &line[right..];
 
     left = line.find("y=").unwrap();
-    right = line.find(":").unwrap();
+    right = line.find(':').unwrap();
     let mut y = line[left+2..right].parse::<T>().unwrap();
     line = &line[right..];
 
     let sensor = Point(x,y);
 
     left = line.find("x=").unwrap();
-    right = line.find(",").unwrap();
+    right = line.find(',').unwrap();
     x = line[left+2..right].parse::<T>().unwrap();
     line = &line[right..];
 

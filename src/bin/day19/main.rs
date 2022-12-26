@@ -2,8 +2,8 @@ use pathfinding::prelude::dfs_reach;
 use rayon::prelude::*;
 
 fn main() {
-    let path = std::env::args().skip(1).next()
-        .unwrap_or("src/bin/day19/input.txt".into());
+    let path = std::env::args().nth(1)
+        .unwrap_or_else(|| "src/bin/day19/input.txt".into());
     let input = std::fs::read_to_string(path).unwrap();
     let blueprints: Vec<_> = input.lines().map(Blueprint::new).collect();
     

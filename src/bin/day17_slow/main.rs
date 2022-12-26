@@ -1,14 +1,14 @@
 fn main() {
-    let path = std::env::args().skip(1).next()
-        .unwrap_or("src/bin/day17/input.txt".into());
+    let path = std::env::args().nth(1)
+        .unwrap_or_else(|| "src/bin/day17/input.txt".into());
     let input = std::fs::read_to_string(path).unwrap();
     let input = input.trim_end();
 
-    let result1 = part1(&input);
+    let result1 = part1(input);
     println!("Part 1: {}", result1);
     // assert_eq!(result1, 3161);
 
-    let result2 = part2_slow(&input);
+    let result2 = part2_slow(input);
     println!("Part 2: {}", result2);
     // assert_eq!(result2, 0);
 }

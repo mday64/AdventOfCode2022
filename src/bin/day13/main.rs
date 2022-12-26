@@ -4,10 +4,8 @@ use nom::{
 use std::fmt::Display;
 
 fn main() {
-    let path = std::env::args()
-        .skip(1)
-        .next()
-        .unwrap_or("src/bin/day13/input.txt".into());
+    let path = std::env::args().nth(1)
+        .unwrap_or_else(|| "src/bin/day13/input.txt".into());
     let input = std::fs::read_to_string(path).unwrap();
 
     let result1 = part1(&input);
@@ -23,7 +21,7 @@ fn part1(input: &str) -> usize {
     let pairs = input.trim_end().split("\n\n");
     std::iter::zip(1.., pairs)
         .filter_map(|(i, pair)| {
-            let (left, right) = pair.split_once("\n").unwrap();
+            let (left, right) = pair.split_once('\n').unwrap();
             let left = parse_packet(left);
             let right = parse_packet(right);
             if left < right {
@@ -38,8 +36,8 @@ fn part1(input: &str) -> usize {
 fn part2(input: &str) -> usize {
     let mut packets = input
         .lines()
-        .filter(|line| line.len() > 0)
-        .map(|line| parse_packet(line))
+        .filter(|line| !line.is_empty())
+        .map(parse_packet)
         .collect::<Vec<_>>();
     packets.push(parse_packet("[[2]]"));
     packets.push(parse_packet("[[6]]"));
@@ -108,8 +106,8 @@ impl Ord for Node {
 fn parse_node(input: &str) -> IResult<&str, Node> {
     alt((
         delimited(tag("["), separated_list0(tag(","), parse_node), tag("]"))
-            .map(|vec| Node::List(vec)),
-        nom::character::complete::u32.map(|num| Node::Number(num)),
+            .map(Node::List),
+        nom::character::complete::u32.map(Node::Number),
     ))(input)
 }
 

@@ -2,8 +2,8 @@ use std::{collections::HashSet, ops::RangeInclusive};
 use pathfinding::prelude::dijkstra;
 
 fn main() {
-    let path = std::env::args().skip(1).next()
-        .unwrap_or("src/bin/day18/input.txt".into());
+    let path = std::env::args().nth(1)
+        .unwrap_or_else(|| "src/bin/day18/input.txt".into());
     let input = std::fs::read_to_string(path).unwrap();
 
     let result1 = part1(&input);
@@ -16,7 +16,7 @@ fn main() {
 }
 
 fn part1(input: &str) -> usize {
-    let cubes = parse_input(&input);
+    let cubes = parse_input(input);
 
     cubes.iter().map(|cube| {
         cube_neighbors(cube)
@@ -151,7 +151,7 @@ fn test_part1() {
         3,2,5\n\
         2,1,5\n\
         2,3,5\n";
-    assert_eq!(part1(&input), 64);
+    assert_eq!(part1(input), 64);
 }
 
 #[test]
@@ -170,5 +170,5 @@ fn test_part2() {
         3,2,5\n\
         2,1,5\n\
         2,3,5\n";
-    assert_eq!(part2(&input), 58);
+    assert_eq!(part2(input), 58);
 }

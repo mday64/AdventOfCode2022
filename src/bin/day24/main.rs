@@ -3,8 +3,8 @@ use std::ops::{Add, AddAssign};
 use pathfinding::prelude::astar;
 
 fn main() {
-    let path = std::env::args().skip(1).next()
-        .unwrap_or("src/bin/day24/input.txt".into());
+    let path = std::env::args().nth(1)
+        .unwrap_or_else(|| "src/bin/day24/input.txt".into());
     let input = std::fs::read_to_string(path).unwrap();
 
     let result1 = part1(&input);
@@ -43,7 +43,7 @@ fn test_part2() {
 }
 
 fn part1(input: &str) -> i32 {
-    let (blizzards, walls, width, height) = parse_input(&input);
+    let (blizzards, walls, width, height) = parse_input(input);
     let start = State{ position: Point::new(1,0), blizzards };
     let end = Point::new(width-2, height-1);
     let success = |state: &State| state.position == end;
@@ -109,7 +109,7 @@ fn part1(input: &str) -> i32 {
 }
 
 fn part2(input: &str) -> i32 {
-    let (blizzards, walls, width, height) = parse_input(&input);
+    let (blizzards, walls, width, height) = parse_input(input);
     let start = Point::new(1,0);
     let end = Point::new(width-2, height-1);
     let success_end = |state: &State| state.position == end;

@@ -143,6 +143,14 @@ where T: Copy + Clone + PartialOrd + Ord + Sum<T> + Sub + Sum<<T as Sub>::Output
     }
 }
 
+impl<T> Default for RangeSet<T>
+where T: Copy + Clone + PartialOrd + Ord + Sum<T> + Sub + Sum<<T as Sub>::Output>
+{
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

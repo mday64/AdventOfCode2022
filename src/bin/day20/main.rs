@@ -1,8 +1,8 @@
 use std::collections::VecDeque;
 
 fn main() {
-    let path = std::env::args().skip(1).next()
-        .unwrap_or("src/bin/day20/input.txt".into());
+    let path = std::env::args().nth(1)
+        .unwrap_or_else(|| "src/bin/day20/input.txt".into());
     let input = std::fs::read_to_string(path).unwrap();
     let numbers = parse_numbers(&input);
 
@@ -24,7 +24,7 @@ fn part1(numbers: &[i32]) -> i32 {
         if number < 0 {
             // Moving the number to the left is equivalent to moving
             // the list to the right
-            mixed.rotate_right((number.abs() as usize) % mixed.len());
+            mixed.rotate_right((number.unsigned_abs() as usize) % mixed.len());
         } else {
             // Moving the number to the right is equivalent to moving
             // the list to the left
@@ -51,7 +51,7 @@ fn part2(numbers: &[i32]) -> i64 {
             if number < 0 {
                 // Moving the number to the left is equivalent to moving
                 // the list to the right
-                mixed.rotate_right((number.abs() as usize) % mixed.len());
+                mixed.rotate_right((number.unsigned_abs() as usize) % mixed.len());
             } else {
                 // Moving the number to the right is equivalent to moving
                 // the list to the left

@@ -3,8 +3,8 @@ use nom::{IResult, branch::alt, bytes::complete::tag, multi::many1, character, P
 use part2::part2;
 
 fn main() {
-    let path = std::env::args().skip(1).next()
-        .unwrap_or("src/bin/day22/input.txt".into());
+    let path = std::env::args().nth(1)
+        .unwrap_or_else(|| "src/bin/day22/input.txt".into());
     let input = std::fs::read_to_string(path).unwrap();
 
     let result1 = part1(&input);
@@ -321,7 +321,7 @@ fn parse_moves(s: &str) -> IResult<&str,Vec<Move>> {
     many1(alt((
         tag("L").map(|_| Move::Left),
         tag("R").map(|_| Move::Right),
-        character::complete::i32.map(|num| Move::Number(num))
+        character::complete::i32.map(Move::Number)
     )))
     .parse(s)
 }

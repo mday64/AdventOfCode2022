@@ -1,8 +1,8 @@
 use anyhow::{anyhow, bail};
 
 fn main() -> anyhow::Result<()> {
-    let path = std::env::args().skip(1).next()
-        .unwrap_or("src/bin/day02/input.txt".into());
+    let path = std::env::args().nth(1)
+        .unwrap_or_else(|| "src/bin/day02/input.txt".into());
     let input = std::fs::read_to_string(path)?;
 
     let result1 = part1(&input)?;
@@ -20,8 +20,8 @@ fn part1(input: &str) -> Result<i32, anyhow::Error> {
     let mut result = 0;
     for line in input.lines() {
         let mut letters = line.split(' ');
-        let opponent = letters.next().ok_or(anyhow!("missing first letter"))?;
-        let me = letters.next().ok_or(anyhow!("missing second letter"))?;
+        let opponent = letters.next().ok_or_else(|| anyhow!("missing first letter"))?;
+        let me = letters.next().ok_or_else(|| anyhow!("missing second letter"))?;
 
         // Add the score for the item I chose
         result += match me {
@@ -46,8 +46,8 @@ fn part2(input: &str) -> Result<i32, anyhow::Error> {
     let mut result = 0;
     for line in input.lines() {
         let mut letters = line.split(' ');
-        let opponent = letters.next().ok_or(anyhow!("missing first letter"))?;
-        let outcome = letters.next().ok_or(anyhow!("missing second letter"))?;
+        let opponent = letters.next().ok_or_else(|| anyhow!("missing first letter"))?;
+        let outcome = letters.next().ok_or_else(|| anyhow!("missing second letter"))?;
 
         // Add the score for the outcome of the round
         result += match outcome {

@@ -1,6 +1,6 @@
 fn main() {
-    let path = std::env::args().skip(1).next()
-        .unwrap_or("src/bin/day10/input.txt".into());
+    let path = std::env::args().nth(1)
+        .unwrap_or_else(|| "src/bin/day10/input.txt".into());
     let input = std::fs::read_to_string(path).unwrap();
 
     //
@@ -20,7 +20,7 @@ fn main() {
 
 fn part1(input: &str) -> i32 {
     let mut result = 0;
-    let x_values = run_program(&input);
+    let x_values = run_program(input);
     for i in (0..=220).skip(20).step_by(40) {
         result += i as i32 * x_values[i-1];
     }
@@ -28,7 +28,7 @@ fn part1(input: &str) -> i32 {
 }
 
 fn part2(input: &str) {
-    let mut x_values = run_program(&input).into_iter();
+    let mut x_values = run_program(input).into_iter();
 
     for _ in 0..6 {
         for x in 0..40 {

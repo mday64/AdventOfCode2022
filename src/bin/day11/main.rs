@@ -1,8 +1,8 @@
 use std::collections::VecDeque;
 
 fn main() {
-    let path = std::env::args().skip(1).next()
-        .unwrap_or("src/bin/day11/input.txt".into());
+    let path = std::env::args().nth(1)
+        .unwrap_or_else(|| "src/bin/day11/input.txt".into());
     let input = std::fs::read_to_string(path).unwrap();
     let monkeys:Vec<Monkey> = input.split("\n\n").map(Monkey::parse).collect();
 
@@ -16,7 +16,7 @@ fn main() {
     //
     // Part 2
     //
-    let result2 = part2(monkeys.clone());
+    let result2 = part2(monkeys);
     println!("Part 2: {}", result2);
     assert_eq!(result2, 14399640002);
 }
@@ -75,7 +75,7 @@ impl Monkey {
         let modulo = lines.next().unwrap().rsplit(' ').next().unwrap().parse::<u64>().unwrap();
         let is_divisible = lines.next().unwrap().rsplit(' ').next().unwrap().parse::<usize>().unwrap();
         let not_divisible = lines.next().unwrap().rsplit(' ').next().unwrap().parse::<usize>().unwrap();
-        Self { items, operation: operation, modulo, is_divisible, not_divisible, inspected: 0 }
+        Self { items, operation, modulo, is_divisible, not_divisible, inspected: 0 }
     }
 
     fn throw(&mut self, relax: impl Fn(u64)->u64) -> Option<(u64, usize)>

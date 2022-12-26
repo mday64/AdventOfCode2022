@@ -3,8 +3,8 @@ use itertools::Itertools;
 use anyhow::{self, Context};
 
 fn main() -> anyhow::Result<()> {
-    let path = std::env::args().skip(1).next()
-        .unwrap_or("src/bin/day03/input.txt".into());
+    let path = std::env::args().nth(1)
+        .unwrap_or_else(|| "src/bin/day03/input.txt".into());
     let input = std::fs::read_to_string(path).context("opening input")?;
 
     //
@@ -38,8 +38,8 @@ fn main() -> anyhow::Result<()> {
         let letters3 = line3.chars().collect::<HashSet<char>>();
 
         let overlap = *letters1.intersection(&letters2)
-            .filter(|letter| letters3.contains(letter))
-            .next().unwrap();
+            .find(|letter| letters3.contains(letter))
+            .unwrap();
 
         priority(overlap)
     }).sum();

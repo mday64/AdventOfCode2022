@@ -2,8 +2,8 @@ use std::collections::{HashMap, HashSet};
 use multiset::HashMultiSet;
 
 fn main() {
-    let path = std::env::args().skip(1).next()
-        .unwrap_or("src/bin/day23/input.txt".into());
+    let path = std::env::args().nth(1)
+        .unwrap_or_else(|| "src/bin/day23/input.txt".into());
     let input = std::fs::read_to_string(path).unwrap();
     let positions = parse_input(&input);
 

@@ -1,6 +1,6 @@
 fn main() {
-    let path = std::env::args().skip(1).next()
-        .unwrap_or("src/bin/day07/input.txt".into());
+    let path = std::env::args().nth(1)
+        .unwrap_or_else(|| "src/bin/day07/input.txt".into());
     let input = std::fs::read_to_string(path).unwrap();
 
     let totals = totals(&input);
@@ -32,7 +32,7 @@ fn totals(input: &str) -> Vec<u32> {
     let mut stack:Vec<u32> = Vec::new();
     for line in input.lines() {
         if line.starts_with("$ cd") {
-            let cd_arg = line.split(' ').skip(2).next().unwrap();
+            let cd_arg = line.split(' ').nth(2).unwrap();
             if cd_arg == ".." {
                 // Exit current directory.  Save its total size.
                 totals.push(stack.pop().unwrap());
