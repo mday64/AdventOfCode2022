@@ -32,6 +32,7 @@ fn main() {
 //
 fn part1(num_rows: usize, num_cols: usize, grid: &[Vec<i8>]) -> usize {
     let mut visible = HashSet::<(usize, usize)>::new();
+    #[allow(clippy::needless_range_loop)]
     for row in 0..num_rows {
         // Looking from left
         let mut tallest = -1;
@@ -54,6 +55,7 @@ fn part1(num_rows: usize, num_cols: usize, grid: &[Vec<i8>]) -> usize {
     for col in 0..num_cols {
         // Looking down
         let mut tallest = -1;
+        #[allow(clippy::needless_range_loop)]
         for row in 0..num_rows {
             if grid[row][col] > tallest {
                 visible.insert((row, col));
@@ -122,6 +124,7 @@ fn scenic_score(grid: &Vec<Vec<i8>>, row: usize, col: usize) -> u32 {
 
     // Look down
     dir_score = 0;
+    #[allow(clippy::needless_range_loop)]
     for r in (row+1)..num_rows {
         dir_score += 1;
         if grid[r][col] >= height {
