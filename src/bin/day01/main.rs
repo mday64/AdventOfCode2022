@@ -17,15 +17,14 @@ fn main() -> anyhow::Result<()> {
     // should be faster than having part 1 iterate over all the values
     // to find the max, and then having part 2 sort them anyway.
     elf_totals.sort_unstable();
-    elf_totals.reverse();
 
     // Part 1
-    let result1 = elf_totals[0];
+    let result1 = *elf_totals.last().unwrap();
     println!("Part 1: {}", result1);
     assert_eq!(result1, 70374);
 
     // Part 2
-    let result2: u32 = elf_totals.iter().take(3).sum();
+    let result2: u32 = elf_totals.iter().rev().take(3).sum();
     println!("Part 2: {}", result2);
     assert_eq!(result2, 204610);
 
