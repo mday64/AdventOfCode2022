@@ -8,7 +8,7 @@ fn main() -> anyhow::Result<()> {
 
     let mut elf_totals = input.split("\n\n").map(|s| {
         // s is the lines for one elf
-        s.split_terminator('\n').map(str::parse::<u32>).sum()
+        s.lines().map(str::parse::<u32>).sum()
     }).collect::<Result<Vec<u32>,_>>().context("parsing numbers")?;
 
     // Since part 2 needs the three largest values, we might as well
