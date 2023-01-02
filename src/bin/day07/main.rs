@@ -35,7 +35,12 @@ fn totals(input: &str) -> Vec<u32> {
             let cd_arg = line.split(' ').nth(2).unwrap();
             if cd_arg == ".." {
                 // Exit current directory.  Save its total size.
-                totals.push(stack.pop().unwrap());
+                let total = stack.pop().unwrap();
+                totals.push(total);
+                // Add that total size to its parent (if any)
+                if let Some(top) = stack.last_mut() {
+                    *top += total;
+                }
             } else {
                 // Entering a new directory; don't care about the name.
                 // Initialize the size (so far) to 0.
@@ -45,16 +50,19 @@ fn totals(input: &str) -> Vec<u32> {
             // Try to parse a number at the start of the line (i.e. a file size)
             let word = line.split(' ').next().unwrap();
             if let Ok(v) = word.parse::<u32>() {
-                // Add the size of this file to all ancestor directories
-                for dir in stack.iter_mut() {
-                    *dir += v;
-                }
+                // Add the size of this file to the current directory
+                *stack.last_mut().unwrap() += v;
             }
         }
     }
 
     // Pop any directories still on the stack
     while let Some(v) = stack.pop() {
+        // Add that total size to its parent (if any)
+        if let Some(top) = stack.last_mut() {
+            *top += v;
+        }
+
         totals.push(v);
     }
 
