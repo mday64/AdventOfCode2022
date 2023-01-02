@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::ops::{Add, Sub, Mul, Div};
 use itertools::Itertools;
 
 fn main() {
@@ -10,10 +11,9 @@ fn main() {
     println!("Part 1: {result1}");
     assert_eq!(result1, 159591692827554);
 
-    let result2 = part2(&input);
+    let result2 = part2_linear(&input);
     println!("Part 2: {result2}");
-    // The accepted answer was 3509819803065
-    assert!((3509819803065..=3509819803070).contains(&result2));
+    assert_eq!(result2, 3509819803065.0);
 }
 
 fn part1(input: &str) -> MonkeyNumber {
@@ -21,6 +21,7 @@ fn part1(input: &str) -> MonkeyNumber {
     monkey_eval("root", &monkeys)
 }
 
+#[allow(dead_code)]
 fn part2(input: &str) -> MonkeyNumber {
     let mut monkeys = parse_input(input);
 
@@ -84,6 +85,116 @@ fn part2(input: &str) -> MonkeyNumber {
     }
     
     guess
+}
+
+fn part2_linear(input: &str) -> f64 {
+    let monkeys = parse_input(input);
+    let MonkeyJob::Add(left_name, right_name) = monkeys.get("root").unwrap() else {
+        panic!("root not add?")
+    };
+
+    let left = linear_eval(left_name, &monkeys);
+    let right = linear_eval(right_name, &monkeys);
+    
+    // I'm assuming that "humn" only appears in one of the two sides.
+    // In both the example and my input, it appears on the left.
+    // If it only appeared on the right, we could swap `left` and `right`.
+    // If it appears on both sides, then subtract one of the `m` values
+    // from both sides, and it will then be on only one side.
+    assert_eq!(right.m, 0.0);
+
+    // We have the equality:
+    //      left.m * humn + left.b = right.b
+    // Solve for `humn`:
+    //      left.m * humn          = right.b - left.b
+    //               humn          = (right.b - left.b) / left.m
+
+    ((right.b - left.b) / left.m).round()
+}
+
+#[derive(Debug)]
+struct LinearExpression {
+    // Think of this as y = m * x + b
+    m: f64,     // Multiply the variable by this amount
+    b: f64,     // Add this constant
+}
+
+impl Add for LinearExpression {
+    type Output = Self;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        LinearExpression {
+            m: self.m + rhs.m,
+            b: self.b + rhs.b
+        }
+    }
+}
+
+impl Sub for LinearExpression {
+    type Output = Self;
+
+    fn sub(self, rhs: Self) -> Self::Output {
+        LinearExpression {
+            m: self.m - rhs.m,
+            b: self.b - rhs.b
+        }
+    }
+}
+
+impl Mul for LinearExpression {
+    type Output = Self;
+
+    fn mul(self, rhs: Self) -> Self::Output {
+        if rhs.m == 0.0 {
+            // Multiplying on the right by a constant (rhs.b)
+            LinearExpression {
+                m: self.m * rhs.b,
+                b: self.b * rhs.b
+            }
+        } else if self.m == 0.0 {
+            // Multiplying on the left by a constant (self.b)
+            LinearExpression {
+                m: rhs.m * self.b,
+                b: rhs.b * self.b
+            }
+        } else {
+            panic!("non-linear");
+        }
+    }
+}
+
+impl Div for LinearExpression {
+    type Output = Self;
+
+    fn div(self, rhs: Self) -> Self::Output {
+        assert_eq!(rhs.m, 0.0);
+        LinearExpression {
+            m: self.m / rhs.b,
+            b: self.b / rhs.b
+        }
+    }
+}
+
+//
+// Evaluate a part of the expression tree, using "humn" as the variable.
+//
+fn linear_eval(name: &str, monkeys: &HashMap<&str, MonkeyJob>) -> LinearExpression {
+    if name == "humn" {
+        return LinearExpression { m: 1.0, b: 0.0 };
+    }
+
+    match monkeys.get(name).unwrap() {
+        MonkeyJob::Yell(num) =>
+            LinearExpression { m: 0.0, b: *num as f64},
+        MonkeyJob::Add(left_name, right_name) =>
+            linear_eval(left_name, monkeys) + linear_eval(right_name, monkeys),
+        MonkeyJob::Sub(left_name, right_name) =>
+            linear_eval(left_name, monkeys) - linear_eval(right_name, monkeys),
+        MonkeyJob::Mul(left_name, right_name) =>
+            linear_eval(left_name, monkeys) * linear_eval(right_name, monkeys),
+        MonkeyJob::Div(left_name, right_name) =>
+            linear_eval(left_name, monkeys) / linear_eval(right_name, monkeys),
+    }
 }
 
 fn monkey_eval(name: &str, monkeys: &HashMap<&str, MonkeyJob>) -> MonkeyNumber {
@@ -211,4 +322,26 @@ hmdt: 32
     dbg!(pppw);
     dbg!(sjmn);
     assert_eq!(pppw, sjmn);
+}
+
+#[test]
+fn test_part2_linear() {
+    let input = "\
+root: pppw + sjmn
+dbpl: 5
+cczh: sllz + lgvd
+zczc: 2
+ptdq: humn - dvpt
+dvpt: 3
+lfqf: 4
+humn: 5
+ljgn: 2
+sjmn: drzm * dbpl
+sllz: 4
+pppw: cczh / lfqf
+lgvd: ljgn * ptdq
+drzm: hmdt - zczc
+hmdt: 32
+";
+    assert_eq!(part2_linear(input), 301.0);
 }
