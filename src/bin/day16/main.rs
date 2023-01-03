@@ -39,48 +39,49 @@ fn main() {
 // calculate the time to move between valves using the locations with
 // zero flow.  That is all pairs shortest paths.
 //
-// Part 1: 1701 (0.323352925 seconds)
-fn part1(input: &str) -> i32 {
+// Part 1: 1701 (0.035187718 seconds)
+fn part1(input: &str) -> u32 {
     #[derive(PartialEq, Eq, Hash, Clone, Debug)]
     struct State {
-        location: String,       // Our current location
-        minutes: i32,           // Minutes left
-        closed: Vec<String>     // Names of closed valves
+        location: ValveID,       // Our current location
+        minutes: u32,           // Minutes left
+        closed: u64,            // Bitmap of closed valves
     }
-    let input = parse_input(input);
-    let paths = all_pairs_shortest_paths(&input);
-    let valve_names = input.iter().filter_map(|(name, valve)| {
+    let (aa_id, valves) = parse_input(input);
+    let paths = all_pairs_shortest_paths(&valves);
+    let closed = valves.iter().filter_map(|(id, valve)| {
         if valve.flow > 0 {
-            Some(name.clone())
+            Some(1u64 << id)
         } else {
             None
         }
-        }).collect::<Vec<_>>();
-
-    let start = State {
-        location: "AA".to_string(),
-        minutes: 30,
-        closed: valve_names
-    };
+    }).sum();
+    let start = State { location: aa_id, minutes: 30, closed };
     let success = |state: &State| state.minutes == 0;
-    let successors = |state: &State| -> Vec<(State, i32)> {
+    let successors = |state: &State| -> Vec<(State, u32)> {
         let mut result = Vec::new();
         
         // What is the total flow rate of all closed valves?
-        let total_flow: i32 = state.closed.iter()
-            .map(|name| input.get(name).unwrap().flow)
-            .sum();
-        
+        let total_flow: u32 = (0..64).into_iter().map(|id| {
+            if state.closed & (1 << id) != 0 {
+                valves[&id].flow
+            } else {
+                0
+            }
+        }).sum();
+
         // Consider each of the remaining closed valves
-        for valve in state.closed.iter().cloned() {
-            // Find out how much time to get to that valve and open it
-            let time = paths[&(state.location.clone(), valve.clone())] + 1;
-            if time < state.minutes {
-                let closed = state.closed.iter().filter(|name| **name != valve).cloned().collect();
-                result.push((
-                    State{ location: valve, minutes: state.minutes-time, closed },
-                    time * total_flow
-                ));
+        for id in 0..64 {
+            if state.closed & (1 << id) != 0 {
+                // Find out how much time to get to that valve and open it
+                let time = paths[&(state.location, id)] + 1;
+                if time < state.minutes {
+                    let closed = state.closed & !(1 << id); // Open valve #`id`
+                    result.push((
+                        State{ location: id, minutes: state.minutes-time, closed },
+                        time * total_flow
+                    ));
+                }
             }
         }
 
@@ -89,7 +90,7 @@ fn part1(input: &str) -> i32 {
         // and list of closed valves don't matter.
         if result.is_empty() {
             result.push((
-                State{ location: String::new(), minutes: 0, closed: vec![] },
+                State{ location: 0, minutes: 0, closed: 0 },
                 state.minutes * total_flow
             ));
         }
@@ -102,7 +103,7 @@ fn part1(input: &str) -> i32 {
     // So that is the maximum possible flow (if all valves had been open
     // at time zero) minus the flow we missed out on while moving from
     // valve to valve.
-    let max_flow = input.values().map(|valve| valve.flow * 30).sum::<i32>();
+    let max_flow = valves.values().map(|valve| valve.flow * 30).sum::<u32>();
     max_flow - cost
 }
 
@@ -112,43 +113,49 @@ fn part1(input: &str) -> i32 {
 // time (essentially part 1), then remove those valves from consideration and
 // run again for the elephant.  The answer is the total flow from both runs.
 //
-// Part 2: 2455 (0.13266966 seconds)
-fn part2b(input: &str) -> i32 {
+// Part 2: 2455 (0.012084316 seconds)
+fn part2b(input: &str) -> u32 {
     #[derive(PartialEq, Eq, Hash, Clone, Debug)]
     struct State {
-        location: String,
-        minutes: i32,
-        closed: Vec<String>
+        location: ValveID,
+        minutes: u32,
+        closed: u64
     }
-    let input = parse_input(input);
-    let paths = all_pairs_shortest_paths(&input);
-    let valve_names = input.iter().filter_map(|(name, valve)| {
+    let (aa_id, valves) = parse_input(input);
+    let paths = all_pairs_shortest_paths(&valves);
+    let closed = valves.iter().filter_map(|(id, valve)| {
         if valve.flow > 0 {
-            Some(name.clone())
+            Some(1u64 << id)
         } else {
             None
         }
-        }).collect::<Vec<_>>();
-    let initial = State { location: "AA".to_string(), minutes: 26, closed: valve_names };
+    }).sum();
+    let initial = State { location: aa_id, minutes: 26, closed };
     let success = |state: &State| state.minutes == 0;
-    let successors = |state: &State| -> Vec<(State, i32)> {
+    let successors = |state: &State| -> Vec<(State, u32)> {
         let mut result = Vec::new();
         
         // What is the total flow rate of all closed valves?
-        let total_flow: i32 = state.closed.iter()
-            .map(|name| input.get(name).unwrap().flow)
-            .sum();
-        
+        let total_flow: u32 = (0..64).into_iter().map(|id| {
+            if state.closed & (1 << id) != 0 {
+                valves[&id].flow
+            } else {
+                0
+            }
+        }).sum();
+
         // Consider each of the remaining closed valves
-        for valve in state.closed.iter().cloned() {
-            // Find out how much time to get to that valve and open it
-            let time = paths[&(state.location.clone(), valve.clone())] + 1;
-            if time < state.minutes {
-                let closed = state.closed.iter().filter(|name| **name != valve).cloned().collect();
-                result.push((
-                    State{ location: valve, minutes: state.minutes-time, closed },
-                    time * total_flow
-                ));
+        for id in 0..64 {
+            if state.closed & (1 << id) != 0 {
+                // Find out how much time to get to that valve and open it
+                let time = paths[&(state.location, id)] + 1;
+                if time < state.minutes {
+                    let closed = state.closed & !(1 << id); // Open valve #`id`
+                    result.push((
+                        State{ location: id, minutes: state.minutes-time, closed },
+                        time * total_flow
+                    ));
+                }
             }
         }
 
@@ -157,7 +164,7 @@ fn part2b(input: &str) -> i32 {
         // and list of closed valves don't matter.
         if result.is_empty() {
             result.push((
-                State{ location: String::new(), minutes: 0, closed: vec![] },
+                State{ location: 0, minutes: 0, closed: 0 },
                 state.minutes * total_flow
             ));
         }
@@ -167,62 +174,70 @@ fn part2b(input: &str) -> i32 {
     //
     // Let the person do their best to open valves.  Like part 1, with less time.
     //
-    let max_flow = input.values().map(|valve| valve.flow * 26).sum::<i32>();
+    let max_flow = valves.values().map(|valve| valve.flow * 26).sum::<u32>();
     let (path, cost) = dijkstra(&initial, successors, success).unwrap();
     let person_flow = max_flow - cost;
     
     //
     // Let the elephant open as many of the remaining valves as possible
     //
-    let closed_valves = path[path.len() - 2].closed.clone();
-    let elephant_max_flow: i32 = input.iter()
-        .filter(|(name, _valve)| closed_valves.contains(name))
-        .map(|(_name, valve)| valve.flow * 26)
+    let closed_valves = path[path.len() - 2].closed;
+    let elephant_max_flow: u32 = valves.iter()
+        .filter(|(id, _valve)| closed_valves & (1 << **id) != 0)
+        .map(|(_id, valve)| valve.flow * 26)
         .sum();
-    let initial = State { location: "AA".to_string(), minutes: 26, closed: closed_valves };
+    let initial = State { location: aa_id, minutes: 26, closed: closed_valves };
     let (_path, elephant_cost) = dijkstra(&initial, successors, success).unwrap();
     let elephant_flow = elephant_max_flow - elephant_cost;
 
     person_flow + elephant_flow
 }
 
-fn all_pairs_shortest_paths(input: &HashMap<String, Valve>) -> HashMap<(String, String), i32> {
+fn all_pairs_shortest_paths(input: &HashMap<ValveID, Valve>) -> HashMap<(ValveID, ValveID), u32> {
     let mut result = HashMap::new();
 
     // We're going to do this the expensive way: via dijkstra_all
     for source in input.keys() {
-        let successors = |node: &String| -> Vec<(String, i32)> {
-            input[node].neighbors.iter().map(|name| (name.clone(), 1)).collect()
+        let successors = |node: &ValveID| -> Vec<(ValveID, u32)> {
+            input[node].neighbors.iter().map(|name| (*name, 1)).collect()
         };
         let paths = dijkstra_all(source, successors);
         for (destination, (_, cost)) in paths.iter() {
-            result.insert((source.clone(), destination.clone()), *cost);
+            result.insert((*source, *destination), *cost);
         }
     }
 
     result
 }
 
+type ValveID = u32;
 #[derive(Debug)]
 struct Valve {
-    flow: i32,
-    neighbors: Vec<String>
+    flow: u32,
+    neighbors: Vec<ValveID>
 }
 
-fn parse_input(input: &str) -> HashMap<String, Valve> {
+fn parse_input(input: &str) -> (ValveID, HashMap<ValveID, Valve>) {
+    // Build a mapping from textual valve name to ValveID,
+    // All valve names are two characters, so I can slice the input
+    // to get the name.
+    let mut valve_names = HashMap::<&str, ValveID>::new();
+    for (id,line) in input.lines().enumerate() {
+        valve_names.insert(&line[6..8], id as ValveID);
+    }
+
     let mut result = HashMap::new();
 
     for line in input.lines() {
-        // Get this valve's name.  All valve names are two characters,
-        // so I can slice the input to get the name
-        let name = line[6..8].to_string();
+        // Get this valve's ID.
+        let id = valve_names[&line[6..8]];
 
         // Get this valve's flow rate.  The flow rate starts at a fixed
         // column.  Find the semicolon and parse that range.
         let semicolon = line.find(';').unwrap();
         let flow = line[23..semicolon].parse().unwrap();
 
-        // Get the names of neighbor valves.  Darned input has both
+        // Get the IDs of neighbor valves.  Darned input has both
         // "lead to valve " and "lead to valves ".
         let mut neighbor_offset = line.find("to valve").unwrap() + 8;
         if line[neighbor_offset..].starts_with('s') {
@@ -232,13 +247,14 @@ fn parse_input(input: &str) -> HashMap<String, Valve> {
         }
         let neighbors = line[neighbor_offset..]
             .split(", ")
-            .map(|s| s.to_string())
+            .map(|s| valve_names[s])
             .collect();
         let valve = Valve{flow, neighbors};
         // println!("{name}: {valve:?}");
-        result.insert(name, valve);
+        result.insert(id, valve);
     }
-    result
+
+    (valve_names["AA"], result)
 }
 
 #[cfg(test)]
