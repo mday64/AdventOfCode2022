@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::ops::Sub;
 use std::time::Instant;
 use pathfinding::prelude::{dijkstra,dijkstra_all};
 
@@ -39,49 +40,41 @@ fn main() {
 // calculate the time to move between valves using the locations with
 // zero flow.  That is all pairs shortest paths.
 //
-// Part 1: 1701 (0.035187718 seconds)
+// Part 1: 1701 (0.029344443 seconds)
 fn part1(input: &str) -> u32 {
     #[derive(PartialEq, Eq, Hash, Clone, Debug)]
     struct State {
         location: ValveID,       // Our current location
         minutes: u32,           // Minutes left
-        closed: u64,            // Bitmap of closed valves
+        closed: BitSet,            // Bitmap of closed valves
     }
     let (aa_id, valves) = parse_input(input);
     let paths = all_pairs_shortest_paths(&valves);
-    let closed = valves.iter().filter_map(|(id, valve)| {
+    let closed = valves.iter().filter_map(|(&id, valve)| {
         if valve.flow > 0 {
-            Some(1u64 << id)
+            Some(id)
         } else {
             None
         }
-    }).sum();
+    }).collect::<BitSet>();
     let start = State { location: aa_id, minutes: 30, closed };
     let success = |state: &State| state.minutes == 0;
     let successors = |state: &State| -> Vec<(State, u32)> {
         let mut result = Vec::new();
         
         // What is the total flow rate of all closed valves?
-        let total_flow: u32 = (0..64).into_iter().map(|id| {
-            if state.closed & (1 << id) != 0 {
-                valves[&id].flow
-            } else {
-                0
-            }
-        }).sum();
+        let total_flow: u32 = state.closed.into_iter().map(|id| valves[&id].flow).sum();
 
         // Consider each of the remaining closed valves
-        for id in 0..64 {
-            if state.closed & (1 << id) != 0 {
-                // Find out how much time to get to that valve and open it
-                let time = paths[&(state.location, id)] + 1;
-                if time < state.minutes {
-                    let closed = state.closed & !(1 << id); // Open valve #`id`
-                    result.push((
-                        State{ location: id, minutes: state.minutes-time, closed },
-                        time * total_flow
-                    ));
-                }
+        for id in state.closed.into_iter() {
+            // Find out how much time to get to that valve and open it
+            let time = paths[&(state.location, id)] + 1;
+            if time < state.minutes {
+                let closed = state.closed - id; // Open valve #`id`
+                result.push((
+                    State{ location: id, minutes: state.minutes-time, closed },
+                    time * total_flow
+                ));
             }
         }
 
@@ -90,7 +83,7 @@ fn part1(input: &str) -> u32 {
         // and list of closed valves don't matter.
         if result.is_empty() {
             result.push((
-                State{ location: 0, minutes: 0, closed: 0 },
+                State{ location: 0, minutes: 0, closed: state.closed },
                 state.minutes * total_flow
             ));
         }
@@ -113,49 +106,41 @@ fn part1(input: &str) -> u32 {
 // time (essentially part 1), then remove those valves from consideration and
 // run again for the elephant.  The answer is the total flow from both runs.
 //
-// Part 2: 2455 (0.012084316 seconds)
+// Part 2: 2455 (0.012005664 seconds)
 fn part2b(input: &str) -> u32 {
     #[derive(PartialEq, Eq, Hash, Clone, Debug)]
     struct State {
         location: ValveID,
         minutes: u32,
-        closed: u64
+        closed: BitSet
     }
     let (aa_id, valves) = parse_input(input);
     let paths = all_pairs_shortest_paths(&valves);
-    let closed = valves.iter().filter_map(|(id, valve)| {
+    let closed = valves.iter().filter_map(|(&id, valve)| {
         if valve.flow > 0 {
-            Some(1u64 << id)
+            Some(id)
         } else {
             None
         }
-    }).sum();
+    }).collect::<BitSet>();
     let initial = State { location: aa_id, minutes: 26, closed };
     let success = |state: &State| state.minutes == 0;
     let successors = |state: &State| -> Vec<(State, u32)> {
         let mut result = Vec::new();
         
         // What is the total flow rate of all closed valves?
-        let total_flow: u32 = (0..64).into_iter().map(|id| {
-            if state.closed & (1 << id) != 0 {
-                valves[&id].flow
-            } else {
-                0
-            }
-        }).sum();
+        let total_flow: u32 = state.closed.into_iter().map(|id| valves[&id].flow).sum();
 
         // Consider each of the remaining closed valves
-        for id in 0..64 {
-            if state.closed & (1 << id) != 0 {
-                // Find out how much time to get to that valve and open it
-                let time = paths[&(state.location, id)] + 1;
-                if time < state.minutes {
-                    let closed = state.closed & !(1 << id); // Open valve #`id`
-                    result.push((
-                        State{ location: id, minutes: state.minutes-time, closed },
-                        time * total_flow
-                    ));
-                }
+        for id in state.closed.into_iter() {
+            // Find out how much time to get to that valve and open it
+            let time = paths[&(state.location, id)] + 1;
+            if time < state.minutes {
+                let closed = state.closed - id; // Open valve #`id`
+                result.push((
+                    State{ location: id, minutes: state.minutes-time, closed },
+                    time * total_flow
+                ));
             }
         }
 
@@ -164,7 +149,7 @@ fn part2b(input: &str) -> u32 {
         // and list of closed valves don't matter.
         if result.is_empty() {
             result.push((
-                State{ location: 0, minutes: 0, closed: 0 },
+                State{ location: 0, minutes: 0, closed: state.closed },
                 state.minutes * total_flow
             ));
         }
@@ -182,9 +167,8 @@ fn part2b(input: &str) -> u32 {
     // Let the elephant open as many of the remaining valves as possible
     //
     let closed_valves = path[path.len() - 2].closed;
-    let elephant_max_flow: u32 = valves.iter()
-        .filter(|(id, _valve)| closed_valves & (1 << **id) != 0)
-        .map(|(_id, valve)| valve.flow * 26)
+    let elephant_max_flow: u32 = closed_valves.into_iter()
+        .map(|id| valves[&id].flow * 26)
         .sum();
     let initial = State { location: aa_id, minutes: 26, closed: closed_valves };
     let (_path, elephant_cost) = dijkstra(&initial, successors, success).unwrap();
@@ -199,7 +183,7 @@ fn all_pairs_shortest_paths(input: &HashMap<ValveID, Valve>) -> HashMap<(ValveID
     // We're going to do this the expensive way: via dijkstra_all
     for source in input.keys() {
         let successors = |node: &ValveID| -> Vec<(ValveID, u32)> {
-            input[node].neighbors.iter().map(|name| (*name, 1)).collect()
+            input[node].neighbors.into_iter().map(|name| (name, 1)).collect()
         };
         let paths = dijkstra_all(source, successors);
         for (destination, (_, cost)) in paths.iter() {
@@ -214,7 +198,7 @@ type ValveID = u32;
 #[derive(Debug)]
 struct Valve {
     flow: u32,
-    neighbors: Vec<ValveID>
+    neighbors: BitSet
 }
 
 fn parse_input(input: &str) -> (ValveID, HashMap<ValveID, Valve>) {
@@ -255,6 +239,59 @@ fn parse_input(input: &str) -> (ValveID, HashMap<ValveID, Valve>) {
     }
 
     (valve_names["AA"], result)
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+struct BitSet(u64);
+
+impl FromIterator<u32> for BitSet {
+    fn from_iter<T: IntoIterator<Item = u32>>(iter: T) -> Self {
+        let mut result = BitSet(0);
+        for v in iter {
+            result.0 |= 1 << v;
+        }
+        result
+    }
+}
+
+impl IntoIterator for BitSet {
+    type Item = u32;
+    type IntoIter = BitSetIterator;
+
+    fn into_iter(self) -> Self::IntoIter {
+        BitSetIterator { set: self.0, next_bit: 0 }
+    }
+}
+
+// Remove a given value from the set
+impl Sub<u32> for BitSet {
+    type Output = Self;
+
+    fn sub(self, rhs: u32) -> Self::Output {
+        BitSet(self.0 & !(1 << rhs))
+    }
+}
+
+struct BitSetIterator {
+    set: u64,
+    next_bit: u32
+}
+
+impl Iterator for BitSetIterator {
+    type Item = u32;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        while self.next_bit < 64 && self.set & (1 << self.next_bit) == 0 {
+            self.next_bit += 1;
+        }
+        if self.next_bit < 64 {
+            let val = self.next_bit;
+            self.next_bit += 1;
+            Some(val)
+        } else {
+            None
+        }
+    }
 }
 
 #[cfg(test)]
