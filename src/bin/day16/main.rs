@@ -1,39 +1,51 @@
 use std::collections::HashMap;
-use pathfinding::prelude::dijkstra_all;
+use std::time::Instant;
+use pathfinding::prelude::{dijkstra,dijkstra_all};
 
 fn main() {
     let path = std::env::args().nth(1)
         .unwrap_or_else(|| "src/bin/day16/input.txt".into());
     let input = std::fs::read_to_string(path).unwrap();
 
+    let start_time = Instant::now();
     let result1 = part1(&input);
-    println!("Part 1: {}", result1);
+    let duration = start_time.elapsed().as_secs_f64();
+    println!("Part 1: {} ({} seconds)", result1, duration);
     assert_eq!(result1, 1701);
 
+    let start_time = Instant::now();
     let result2 = part2b(&input);
-    println!("Part 2: {}", result2);
+    let duration = start_time.elapsed().as_secs_f64();
+    println!("Part 2: {} ({} seconds)", result2, duration);
     assert_eq!(result2, 2455);
 }
 
 //
 // Part 1
 //
-// Let's use Dijkstra's shortest path algorithm.  Let's hope that
-// pathfinding's algorithm works with negative numbers since we want
-// a maximum and the algorithm finds a minimum.  Therefore, we'll use
-// negative costs.
+// The only "interesting" locations are where the valves have non-zero
+// flow rates.  Our task is to find a path from valve to valve, turning
+// each valve on when we get to it, such that the resulting flow is
+// maximized.
 //
-// Idea: Find the shortest paths between every pair of valves.
-// Then, all we have to examine are moves between valves with non-zero
-// flow rates (and which have not yet been opened).  A single move is
-// go to a location with a closed valve and open it.
+// Let's use Dijkstra's shortest path algorithm.
 //
+// But Dijkstra's wants to minimize some cost.  So, what is our "cost"?
+// I'm using the "opportunity cost" of unrealized flow from closed valves.
+// Cost is the sum of those closed valves' flow rates times elapsed time.
+//
+// To simplify the number of states we must examine, we need to eliminate
+// locations whose flow rate is zero.  But that also means we need to
+// calculate the time to move between valves using the locations with
+// zero flow.  That is all pairs shortest paths.
+//
+// Part 1: 1701 (0.323352925 seconds)
 fn part1(input: &str) -> i32 {
     #[derive(PartialEq, Eq, Hash, Clone, Debug)]
     struct State {
-        location: String,
-        minutes: i32,
-        closed: Vec<String>
+        location: String,       // Our current location
+        minutes: i32,           // Minutes left
+        closed: Vec<String>     // Names of closed valves
     }
     let input = parse_input(input);
     let paths = all_pairs_shortest_paths(&input);
@@ -44,32 +56,54 @@ fn part1(input: &str) -> i32 {
             None
         }
         }).collect::<Vec<_>>();
-    let initial = State { location: "AA".to_string(), minutes: 30, closed: valve_names };
+
+    let start = State {
+        location: "AA".to_string(),
+        minutes: 30,
+        closed: valve_names
+    };
+    let success = |state: &State| state.minutes == 0;
     let successors = |state: &State| -> Vec<(State, i32)> {
         let mut result = Vec::new();
+        
+        // What is the total flow rate of all closed valves?
+        let total_flow: i32 = state.closed.iter()
+            .map(|name| input.get(name).unwrap().flow)
+            .sum();
+        
         // Consider each of the remaining closed valves
         for valve in state.closed.iter().cloned() {
             // Find out how much time to get to that valve and open it
             let time = paths[&(state.location.clone(), valve.clone())] + 1;
             if time < state.minutes {
-                let cost = -(state.minutes - time)*input[&valve].flow;
                 let closed = state.closed.iter().filter(|name| **name != valve).cloned().collect();
                 result.push((
                     State{ location: valve, minutes: state.minutes-time, closed },
-                    cost
+                    time * total_flow
                 ));
             }
+        }
+
+        // If there wasn't time to close any valves, then the only next state is
+        // that we're done.  Don't forget there is a cost!  The actual location
+        // and list of closed valves don't matter.
+        if result.is_empty() {
+            result.push((
+                State{ location: String::new(), minutes: 0, closed: vec![] },
+                state.minutes * total_flow
+            ));
         }
         result
     };
 
-    // Because "success" is defined as running out of time, we need to call
-    // dijkstra_all to examine all possibilities.  Then find the best flow
-    // from all of those.
-    let result = dijkstra_all(&initial, successors);
-    let result = result.values().map(|(state, cost)| (state, -cost)).max_by_key(|(_state, cost)| *cost).unwrap();
-    // dbg!(result.0);
-    result.1
+    let (_, cost) = dijkstra(&start, successors, success).unwrap();
+
+    // The answer to part 1 is the total flow that _did_ happen.
+    // So that is the maximum possible flow (if all valves had been open
+    // at time zero) minus the flow we missed out on while moving from
+    // valve to valve.
+    let max_flow = input.values().map(|valve| valve.flow * 30).sum::<i32>();
+    max_flow - cost
 }
 
 //
@@ -188,6 +222,7 @@ fn part2(input: &str) -> i32 {
 // time (essentially part 1), then remove those valves from consideration and
 // run again for the elephant.  The answer is the total flow from both runs.
 //
+// Part 2: 2455 (0.345685616 seconds)
 fn part2b(input: &str) -> i32 {
     #[derive(PartialEq, Eq, Hash, Clone, Debug)]
     struct State {

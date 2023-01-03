@@ -154,7 +154,7 @@ You're worried that even with an optimal approach, the pressure released won't b
 It would take you 4 minutes to teach an elephant how to open the right valves in the right order, leaving you with only **26 minutes** to actually execute your plan. Would having two of you working together be better, even if it means having less time? (Assume that you teach the elephant before opening any valves yourself, giving you both the same full 26 minutes.)
 
 In the example above, you could teach the elephant to help you as follows:
-
+```
 == Minute 1 ==
 No valves are open.
 You move to valve II.
@@ -222,6 +222,7 @@ Valves BB, CC, DD, EE, HH, and JJ are open, releasing 81 pressure.
 
 == Minute 26 ==
 Valves BB, CC, DD, EE, HH, and JJ are open, releasing 81 pressure.
+```
 With the elephant helping, after 26 minutes, the best you could do would release a total of **`1707`** pressure.
 
 **With you and an elephant working together for 26 minutes, what is the most pressure you could release?**
