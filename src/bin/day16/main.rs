@@ -40,7 +40,7 @@ fn main() {
 // calculate the time to move between valves using the locations with
 // zero flow.  That is all pairs shortest paths.
 //
-// Part 1: 1701 (0.029344443 seconds)
+// Part 1: 1701 (0.026548244 seconds)
 fn part1(input: &str) -> u32 {
     #[derive(PartialEq, Eq, Hash, Clone, Debug)]
     struct State {
@@ -50,9 +50,9 @@ fn part1(input: &str) -> u32 {
     }
     let (aa_id, valves) = parse_input(input);
     let paths = all_pairs_shortest_paths(&valves);
-    let closed = valves.iter().filter_map(|(&id, valve)| {
+    let closed = valves.iter().enumerate().filter_map(|(id, valve)| {
         if valve.flow > 0 {
-            Some(id)
+            Some(id as u32)
         } else {
             None
         }
@@ -63,7 +63,7 @@ fn part1(input: &str) -> u32 {
         let mut result = Vec::new();
         
         // What is the total flow rate of all closed valves?
-        let total_flow: u32 = state.closed.into_iter().map(|id| valves[&id].flow).sum();
+        let total_flow: u32 = state.closed.into_iter().map(|id| valves[id as usize].flow).sum();
 
         // Consider each of the remaining closed valves
         for id in state.closed.into_iter() {
@@ -96,7 +96,7 @@ fn part1(input: &str) -> u32 {
     // So that is the maximum possible flow (if all valves had been open
     // at time zero) minus the flow we missed out on while moving from
     // valve to valve.
-    let max_flow = valves.values().map(|valve| valve.flow * 30).sum::<u32>();
+    let max_flow = valves.iter().map(|valve| valve.flow * 30).sum::<u32>();
     max_flow - cost
 }
 
@@ -106,7 +106,7 @@ fn part1(input: &str) -> u32 {
 // time (essentially part 1), then remove those valves from consideration and
 // run again for the elephant.  The answer is the total flow from both runs.
 //
-// Part 2: 2455 (0.012005664 seconds)
+// Part 2: 2455 (0.00992021 seconds)
 fn part2b(input: &str) -> u32 {
     #[derive(PartialEq, Eq, Hash, Clone, Debug)]
     struct State {
@@ -116,9 +116,9 @@ fn part2b(input: &str) -> u32 {
     }
     let (aa_id, valves) = parse_input(input);
     let paths = all_pairs_shortest_paths(&valves);
-    let closed = valves.iter().filter_map(|(&id, valve)| {
+    let closed = valves.iter().enumerate().filter_map(|(id, valve)| {
         if valve.flow > 0 {
-            Some(id)
+            Some(id as u32)
         } else {
             None
         }
@@ -129,7 +129,7 @@ fn part2b(input: &str) -> u32 {
         let mut result = Vec::new();
         
         // What is the total flow rate of all closed valves?
-        let total_flow: u32 = state.closed.into_iter().map(|id| valves[&id].flow).sum();
+        let total_flow: u32 = state.closed.into_iter().map(|id| valves[id as usize].flow).sum();
 
         // Consider each of the remaining closed valves
         for id in state.closed.into_iter() {
@@ -159,7 +159,7 @@ fn part2b(input: &str) -> u32 {
     //
     // Let the person do their best to open valves.  Like part 1, with less time.
     //
-    let max_flow = valves.values().map(|valve| valve.flow * 26).sum::<u32>();
+    let max_flow = valves.iter().map(|valve| valve.flow * 26).sum::<u32>();
     let (path, cost) = dijkstra(&initial, successors, success).unwrap();
     let person_flow = max_flow - cost;
     
@@ -168,7 +168,7 @@ fn part2b(input: &str) -> u32 {
     //
     let closed_valves = path[path.len() - 2].closed;
     let elephant_max_flow: u32 = closed_valves.into_iter()
-        .map(|id| valves[&id].flow * 26)
+        .map(|id| valves[id as usize].flow * 26)
         .sum();
     let initial = State { location: aa_id, minutes: 26, closed: closed_valves };
     let (_path, elephant_cost) = dijkstra(&initial, successors, success).unwrap();
@@ -177,17 +177,17 @@ fn part2b(input: &str) -> u32 {
     person_flow + elephant_flow
 }
 
-fn all_pairs_shortest_paths(input: &HashMap<ValveID, Valve>) -> HashMap<(ValveID, ValveID), u32> {
+fn all_pairs_shortest_paths(input: &[Valve; 64]) -> HashMap<(ValveID, ValveID), u32> {
     let mut result = HashMap::new();
 
     // We're going to do this the expensive way: via dijkstra_all
-    for source in input.keys() {
+    for source in 0..input.len() {
         let successors = |node: &ValveID| -> Vec<(ValveID, u32)> {
-            input[node].neighbors.into_iter().map(|name| (name, 1)).collect()
+            input[*node as usize].neighbors.into_iter().map(|name| (name, 1)).collect()
         };
-        let paths = dijkstra_all(source, successors);
+        let paths = dijkstra_all(&(source as ValveID), successors);
         for (destination, (_, cost)) in paths.iter() {
-            result.insert((*source, *destination), *cost);
+            result.insert((source as ValveID, *destination), *cost);
         }
     }
 
@@ -195,13 +195,13 @@ fn all_pairs_shortest_paths(input: &HashMap<ValveID, Valve>) -> HashMap<(ValveID
 }
 
 type ValveID = u32;
-#[derive(Debug)]
+#[derive(Debug, Default, Clone, Copy)]
 struct Valve {
     flow: u32,
     neighbors: BitSet
 }
 
-fn parse_input(input: &str) -> (ValveID, HashMap<ValveID, Valve>) {
+fn parse_input(input: &str) -> (ValveID, [Valve; 64]) {
     // Build a mapping from textual valve name to ValveID,
     // All valve names are two characters, so I can slice the input
     // to get the name.
@@ -210,11 +210,12 @@ fn parse_input(input: &str) -> (ValveID, HashMap<ValveID, Valve>) {
         valve_names.insert(&line[6..8], id as ValveID);
     }
 
-    let mut result = HashMap::new();
+    let mut result = [Valve::default(); 64];
 
     for line in input.lines() {
         // Get this valve's ID.
         let id = valve_names[&line[6..8]];
+        assert!(id < 64);
 
         // Get this valve's flow rate.  The flow rate starts at a fixed
         // column.  Find the semicolon and parse that range.
@@ -235,13 +236,13 @@ fn parse_input(input: &str) -> (ValveID, HashMap<ValveID, Valve>) {
             .collect();
         let valve = Valve{flow, neighbors};
         // println!("{name}: {valve:?}");
-        result.insert(id, valve);
+        result[id as usize] = valve;
     }
 
     (valve_names["AA"], result)
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 struct BitSet(u64);
 
 impl FromIterator<u32> for BitSet {
