@@ -222,7 +222,7 @@ fn part2(input: &str) -> i32 {
 // time (essentially part 1), then remove those valves from consideration and
 // run again for the elephant.  The answer is the total flow from both runs.
 //
-// Part 2: 2455 (0.345685616 seconds)
+// Part 2: 2455 (0.13266966 seconds)
 fn part2b(input: &str) -> i32 {
     #[derive(PartialEq, Eq, Hash, Clone, Debug)]
     struct State {
@@ -240,38 +240,58 @@ fn part2b(input: &str) -> i32 {
         }
         }).collect::<Vec<_>>();
     let initial = State { location: "AA".to_string(), minutes: 26, closed: valve_names };
+    let success = |state: &State| state.minutes == 0;
     let successors = |state: &State| -> Vec<(State, i32)> {
         let mut result = Vec::new();
+        
+        // What is the total flow rate of all closed valves?
+        let total_flow: i32 = state.closed.iter()
+            .map(|name| input.get(name).unwrap().flow)
+            .sum();
+        
         // Consider each of the remaining closed valves
         for valve in state.closed.iter().cloned() {
             // Find out how much time to get to that valve and open it
             let time = paths[&(state.location.clone(), valve.clone())] + 1;
             if time < state.minutes {
-                let cost = -(state.minutes - time)*input[&valve].flow;
                 let closed = state.closed.iter().filter(|name| **name != valve).cloned().collect();
                 result.push((
                     State{ location: valve, minutes: state.minutes-time, closed },
-                    cost
+                    time * total_flow
                 ));
             }
+        }
+
+        // If there wasn't time to close any valves, then the only next state is
+        // that we're done.  Don't forget there is a cost!  The actual location
+        // and list of closed valves don't matter.
+        if result.is_empty() {
+            result.push((
+                State{ location: String::new(), minutes: 0, closed: vec![] },
+                state.minutes * total_flow
+            ));
         }
         result
     };
 
-    // Because "success" is defined as running out of time, we need to call
-    // dijkstra_all to examine all possibilities.  Then find the best flow
-    // from all of those.
-    let result = dijkstra_all(&initial, successors);
-    let result = result.values().map(|(state, cost)| (state, -cost)).max_by_key(|(_state, cost)| *cost).unwrap();
-    dbg!(result.0);
-    let person_flow = result.1;
-
-    // Solve for the valves still closed from above.
-    let initial = State { location: "AA".to_string(), minutes: 26, closed: result.0.closed.clone() };
-    let result = dijkstra_all(&initial, successors);
-    let result = result.values().map(|(state, cost)| (state, -cost)).max_by_key(|(_state, cost)| *cost).unwrap();
-    dbg!(result.0);
-    let elephant_flow = result.1;
+    //
+    // Let the person do their best to open valves.  Like part 1, with less time.
+    //
+    let max_flow = input.values().map(|valve| valve.flow * 26).sum::<i32>();
+    let (path, cost) = dijkstra(&initial, successors, success).unwrap();
+    let person_flow = max_flow - cost;
+    
+    //
+    // Let the elephant open as many of the remaining valves as possible
+    //
+    let closed_valves = path[path.len() - 2].closed.clone();
+    let elephant_max_flow: i32 = input.iter()
+        .filter(|(name, _valve)| closed_valves.contains(name))
+        .map(|(_name, valve)| valve.flow * 26)
+        .sum();
+    let initial = State { location: "AA".to_string(), minutes: 26, closed: closed_valves };
+    let (_path, elephant_cost) = dijkstra(&initial, successors, success).unwrap();
+    let elephant_flow = elephant_max_flow - elephant_cost;
 
     person_flow + elephant_flow
 }
