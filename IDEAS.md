@@ -39,6 +39,11 @@ For a given partition, we could find the optimal path for each of {human, elepha
 
 Is there a way to order the partitions such that we start by trying partitions that are "more even"?  Perhaps trying to assign similar total flow rates?
 
+# Day 17
+Part 2 is very SLOW!
+
+The problem is in recognizing a repeating pattern in the tower configuration.  Rather than checking only after complete repetitions of the input, can I check after every piece?
+
 # Day 19
 It's SLOW!
 

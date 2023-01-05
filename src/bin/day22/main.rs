@@ -161,7 +161,6 @@ mod part2 {
                 return;
             },
             Some(&Board::Wall) => {
-                println!("WALL");
                 return;
             },
             None => {}
