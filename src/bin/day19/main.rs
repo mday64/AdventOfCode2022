@@ -63,6 +63,9 @@ fn collect_geodes(blueprint: &Blueprint, minutes: u16) -> u16 {
     let max_obsidian_robots = blueprint.geode_robot_obsidian_cost;
     // There is no max_geode_robots, since we want as many as possible
 
+    // Best solution found so far
+    let mut max_geodes = 0;
+
     let collect_resources = |state: &mut State| {
         if state.minutes > 0 {
             state.minutes -= 1;
@@ -82,6 +85,16 @@ fn collect_geodes(blueprint: &Blueprint, minutes: u16) -> u16 {
                 state.obsidian = max_obsidian_robots;
             }
         }
+    };
+
+    let max_geodes_for_state = |state: &State| -> u16 {
+        let mut next_state = state.clone();
+        while next_state.minutes > 0 {
+            next_state.geodes += next_state.geode_robots;
+            next_state.geode_robots += 1;
+            next_state.minutes -= 1;
+        }
+        next_state.geodes
     };
 
     // Advance state until the requested resources are available.  If so,
@@ -111,11 +124,18 @@ fn collect_geodes(blueprint: &Blueprint, minutes: u16) -> u16 {
     };
     let successors = |state: &State| {
         // dbg!(state);
-        if state.minutes == 0 {
-            return vec![];
-        }
+        max_geodes = max_geodes.max(state.geodes);
 
         let mut result = vec![];
+
+        if state.minutes == 0 {
+            return result;
+        }
+
+        // If this state couldn't possibly beat our best solution, ignore it.
+        if max_geodes_for_state(state) <= max_geodes {
+            return result;
+        }
 
         //
         // Pick which robot types we can make, and generate the states
