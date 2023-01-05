@@ -39,6 +39,29 @@ For a given partition, we could find the optimal path for each of {human, elepha
 
 Is there a way to order the partitions such that we start by trying partitions that are "more even"?  Perhaps trying to assign similar total flow rates?
 
+# Day 19
+It's SLOW!
+
+I suspect the biggest part of the problem is that there are just an enormous number of states to examine.  Is there a way to prune choices (back to the problem of trying to find a maximal path)?  Is there some way to represent the problem as a shortest path?
+
+Would a greedy solution be optimal?
+
+Is there a way to recognize a pattern for how many of each robot you need, or should continue to make?  I'm guessing that the optimal solution is repeatedly making the same quantities of each robot for as long as time allows.
+
+Would this be a good example of profiling?
+
+Am I examining the same/equivalent states multiple times?  Maybe I should add a cache of visited states, and print out when it finds a duplicate...  No, dfs_reach() already does that for me.
+
+Current solution has a choice at every time step to do nothing, and not build any bot, even if it was possible to build one.  Is this actually needed in any solution?  (Yes!)  Perhaps it would be better to decide on a type of bot to build, then advance time until that bot has been built.
+
+This [reddit thread](https://www.reddit.com/r/adventofcode/comments/zpihwi/comment/j1vj08v/?utm_source=share&utm_medium=web2x&context=3) talks about pruning paths where "theoretical production" can't possibly make as many geodes as the best known solution.  That theoretical production is all current geode robots producing for the remaining time, and assuming you can make a new geode robot every minute, which then produces thereafter.
+
+[Here](https://www.reddit.com/r/adventofcode/comments/zpihwi/comment/j1q5l05/?utm_source=share&utm_medium=web2x&context=3) is a Rust solution using Depth First Search with branch and bound, that purports to be extremely fast.  (Is this just another name for pruning demonstrably worse paths/states?)
+
+[This Javascript solution](https://www.reddit.com/r/adventofcode/comments/zpihwi/comment/j15jpqn/?utm_source=share&utm_medium=web2x&context=3) suggests pruning paths that yield geodes later than the earliest found in any solution.  Also, deciding which bot to build, and skipping time steps until you can actually build that bot.
+
+Another, simple [Rust solution](https://www.reddit.com/r/adventofcode/comments/zpihwi/comment/j0xaaxn/?utm_source=share&utm_medium=web2x&context=3).  And [another](https://www.reddit.com/r/adventofcode/comments/zpihwi/comment/j0wzy3k/?utm_source=share&utm_medium=web2x&context=3).
+
 # Day 20
 Investigate a data structure that makes finding, removing, and inserting an element faster than O(n).  Then revert back to the remove/insert way of moving an element.  Note: requires being able to get an item's index, and insert at index; whereas finding an element is "by value" (using the index created by the enumerate() method).
 

@@ -91,6 +91,7 @@ fn collect_geodes(blueprint: &Blueprint, minutes: u16) -> u16 {
                 geode_robots: state.geode_robots+1,
                 ..*state
             });
+            return result;
         }
         if state.obsidian_robots < max_obsidian_robots &&
             state.ore >= blueprint.obsidian_robot_ore_cost &&
@@ -105,6 +106,7 @@ fn collect_geodes(blueprint: &Blueprint, minutes: u16) -> u16 {
                 obsidian_robots: state.obsidian_robots+1,
                 ..*state
             });
+            return result;
         }
         if state.clay_robots < max_clay_robots &&
             state.ore >= blueprint.clay_robot_ore_cost
