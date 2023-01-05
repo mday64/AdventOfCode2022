@@ -63,86 +63,109 @@ fn collect_geodes(blueprint: &Blueprint, minutes: u16) -> u16 {
     let max_obsidian_robots = blueprint.geode_robot_obsidian_cost;
     // There is no max_geode_robots, since we want as many as possible
 
+    let collect_resources = |state: &mut State| {
+        if state.minutes > 0 {
+            state.minutes -= 1;
+            state.ore += state.ore_robots;
+            state.clay += state.clay_robots;
+            state.obsidian += state.obsidian_robots;
+            state.geodes += state.geode_robots;
+
+            // Prune distinct states where we have more resources than we could possibly use
+            if state.ore_robots >= max_ore_robots && state.ore > max_ore_robots {
+                state.ore = max_ore_robots;
+            }
+            if state.clay_robots >= max_clay_robots && state.clay > max_clay_robots {
+                state.clay = max_clay_robots;
+            }
+            if state.obsidian_robots >= max_obsidian_robots && state.obsidian > max_obsidian_robots {
+                state.obsidian = max_obsidian_robots;
+            }
+        }
+    };
+
+    // Advance state until the requested resources are available.  If so,
+    // subtract those resources and return Some(state).  Otherwise, return None.
+    let wait_for_resources = |state: &State,
+                                ore_cost: u16, clay_cost: u16,
+                                obsidian_cost: u16| -> Option<State>
+    {
+        let mut next_state = state.clone();
+        while next_state.minutes > 1 && (next_state.ore < ore_cost || next_state.clay < clay_cost || next_state.obsidian < obsidian_cost) {
+            collect_resources(&mut next_state);
+        }
+        
+        if next_state.minutes > 0 && next_state.ore >= ore_cost && next_state.clay >= clay_cost && next_state.obsidian >= obsidian_cost {
+            next_state.ore -= ore_cost;
+            next_state.clay -= clay_cost;
+            next_state.obsidian -= obsidian_cost;
+            Some(next_state)
+        } else {
+            None
+        }
+    };
+
     let start = State {
         minutes, ore: 0, clay: 0, obsidian: 0, geodes: 0,
         ore_robots: 1, clay_robots: 0, obsidian_robots: 0, geode_robots: 0,
     };
     let successors = |state: &State| {
+        // dbg!(state);
         if state.minutes == 0 {
             return vec![];
         }
 
         let mut result = vec![];
-        let minutes = state.minutes - 1;
 
-        // Figure out whether we can start building a new robot.
-        // The robot factory can only build one robot at a time.
-        // Don't forget to add in the materials made by the pre-existing
-        // robots.
-        if state.ore >= blueprint.geode_robot_ore_cost &&
-            state.obsidian >= blueprint.geode_robot_obsidian_cost
-        {
-            result.push(State {
-                minutes,
-                ore: state.ore - blueprint.geode_robot_ore_cost + state.ore_robots,
-                clay: state.clay + state.clay_robots,
-                obsidian: state.obsidian - blueprint.geode_robot_obsidian_cost + state.obsidian_robots,
-                geodes: state.geodes + state.geode_robots,
-                geode_robots: state.geode_robots+1,
-                ..*state
-            });
-            return result;
-        }
-        if state.obsidian_robots < max_obsidian_robots &&
-            state.ore >= blueprint.obsidian_robot_ore_cost &&
-            state.clay >= blueprint.obsidian_robot_clay_cost
-        {
-            result.push(State {
-                minutes,
-                ore: state.ore - blueprint.obsidian_robot_ore_cost + state.ore_robots,
-                clay: state.clay - blueprint.obsidian_robot_clay_cost + state.clay_robots,
-                obsidian: state.obsidian + state.obsidian_robots,
-                geodes: state.geodes + state.geode_robots,
-                obsidian_robots: state.obsidian_robots+1,
-                ..*state
-            });
-            return result;
-        }
-        if state.clay_robots < max_clay_robots &&
-            state.ore >= blueprint.clay_robot_ore_cost
-        {
-            result.push(State {
-                minutes,
-                ore: state.ore - blueprint.clay_robot_ore_cost + state.ore_robots,
-                clay: state.clay + state.clay_robots,
-                obsidian: state.obsidian + state.obsidian_robots,
-                geodes: state.geodes + state.geode_robots,
-                clay_robots: state.clay_robots+1,
-                ..*state
-            });
-        }
-        if state.ore_robots < max_ore_robots &&
-            state.ore >= blueprint.ore_robot_ore_cost
-        {
-            result.push(State {
-                minutes,
-                ore: state.ore - blueprint.ore_robot_ore_cost + state.ore_robots,
-                clay: state.clay + state.clay_robots,
-                obsidian: state.obsidian + state.obsidian_robots,
-                geodes: state.geodes + state.geode_robots,
-                ore_robots: state.ore_robots+1,
-                ..*state
-            });
+        //
+        // Pick which robot types we can make, and generate the states
+        // after those robots have been constructed.
+        //
+        
+        // Can we make a geode robot?
+        if let Some(mut next_state) = wait_for_resources(state, blueprint.geode_robot_ore_cost, 0, blueprint.geode_robot_obsidian_cost) {
+            collect_resources(&mut next_state);
+            next_state.geode_robots += 1;
+            result.push(next_state);
         }
 
-        // Try accumulating materials without building a robot
-        result.push(State {
-            minutes,
-            ore: state.ore + state.ore_robots,
-            clay: state.clay + state.clay_robots,
-            obsidian: state.obsidian + state.obsidian_robots,
-            geodes: state.geodes + state.geode_robots, ..*state
-        });
+        // Can/should we make an obsidian robot?
+        if state.obsidian_robots < max_obsidian_robots {
+            if let Some(mut next_state) = wait_for_resources(state, blueprint.obsidian_robot_ore_cost, blueprint.obsidian_robot_clay_cost, 0) {
+                collect_resources(&mut next_state);
+                next_state.obsidian_robots += 1;
+                result.push(next_state);
+            }
+        }
+
+        // Can/should we make a clay robot?
+        if state.clay_robots < max_clay_robots {
+            if let Some(mut next_state) = wait_for_resources(state, blueprint.clay_robot_ore_cost, 0, 0) {
+                collect_resources(&mut next_state);
+                next_state.clay_robots += 1;
+                result.push(next_state);
+            }
+        }
+
+        // Can/should we make an ore robot?
+        if state.ore_robots < max_ore_robots {
+            if let Some(mut next_state) = wait_for_resources(state, blueprint.ore_robot_ore_cost, 0, 0) {
+                collect_resources(&mut next_state);
+                next_state.ore_robots += 1;
+                result.push(next_state);
+            }
+        }
+
+        // If we weren't able to make any robots, it's because there isn't
+        // enough time left to make anything we need.  So just advance time
+        // to the end.
+        if result.is_empty() {
+            let mut next_state = state.clone();
+            while next_state.minutes > 0 {
+                collect_resources(&mut next_state);
+            }
+            result.push(next_state);
+        }
 
         result
     };
@@ -185,6 +208,12 @@ impl Blueprint {
             geode_robot_obsidian_cost,
         }
     }
+}
+
+#[test]
+fn test_collect_geodes() {
+    let blueprint = Blueprint::new("Blueprint 1: Each ore robot costs 4 ore. Each clay robot costs 2 ore. Each obsidian robot costs 3 ore and 14 clay. Each geode robot costs 2 ore and 7 obsidian.");
+    assert_eq!(collect_geodes(&blueprint, 24), 9);
 }
 
 #[test]
