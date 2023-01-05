@@ -52,6 +52,8 @@ Would this be a good example of profiling?
 
 Am I examining the same/equivalent states multiple times?  Maybe I should add a cache of visited states, and print out when it finds a duplicate...  No, dfs_reach() already does that for me.
 
+Use a Breadth-First Search instead of Depth-First?  If I'm pruning branches that can't possibly do better than the current best solution, would BFS end up pruning more states than DFS?
+
 Current solution has a choice at every time step to do nothing, and not build any bot, even if it was possible to build one.  Is this actually needed in any solution?  (Yes!)  Perhaps it would be better to decide on a type of bot to build, then advance time until that bot has been built.
 
 This [reddit thread](https://www.reddit.com/r/adventofcode/comments/zpihwi/comment/j1vj08v/?utm_source=share&utm_medium=web2x&context=3) talks about pruning paths where "theoretical production" can't possibly make as many geodes as the best known solution.  That theoretical production is all current geode robots producing for the remaining time, and assuming you can make a new geode robot every minute, which then produces thereafter.
@@ -60,7 +62,11 @@ This [reddit thread](https://www.reddit.com/r/adventofcode/comments/zpihwi/comme
 
 [This Javascript solution](https://www.reddit.com/r/adventofcode/comments/zpihwi/comment/j15jpqn/?utm_source=share&utm_medium=web2x&context=3) suggests pruning paths that yield geodes later than the earliest found in any solution.  Also, deciding which bot to build, and skipping time steps until you can actually build that bot.
 
-Another, simple [Rust solution](https://www.reddit.com/r/adventofcode/comments/zpihwi/comment/j0xaaxn/?utm_source=share&utm_medium=web2x&context=3).  And [another](https://www.reddit.com/r/adventofcode/comments/zpihwi/comment/j0wzy3k/?utm_source=share&utm_medium=web2x&context=3).
+A [Rust solution](https://www.reddit.com/r/adventofcode/comments/zpihwi/comment/j0vvtdt/?utm_source=share&utm_medium=web2x&context=3) suggests pruning a branch if it tries to create a robot of a given type, but it could have also created that robot in the previous state but it decided not to.  I think this is one way of handling accumulating resources to build an obsidian robot when you could have created an ore or clay robot.  I think it is an alternative to "pick the kind of robot you want to make, and advance time until you can make it."
+
+[This Rust solution](https://www.reddit.com/r/adventofcode/comments/zpihwi/comment/j0vigd6/?utm_source=share&utm_medium=web2x&context=3) suggests that if you have reached the max number of robots of a given type, and you have more of that resource than you could use in a single turn, set the quantity of that resource to the maximum you could use.  This could potentially reduce the number of distinct states being cached.
+
+Another, simple [Rust solution](https://www.reddit.com/r/adventofcode/comments/zpihwi/comment/j0xaaxn/?utm_source=share&utm_medium=web2x&context=3).  And [another](https://www.reddit.com/r/adventofcode/comments/zpihwi/comment/j0wzy3k/?utm_source=share&utm_medium=web2x&context=3).  And [yet another](https://www.reddit.com/r/adventofcode/comments/zpihwi/comment/j0vvzgz/?utm_source=share&utm_medium=web2x&context=3).  More [Rust](https://www.reddit.com/r/adventofcode/comments/zpihwi/comment/j0vt06q/?utm_source=share&utm_medium=web2x&context=3).  And [this one](https://www.reddit.com/r/adventofcode/comments/zpihwi/comment/j0v1sul/?utm_source=share&utm_medium=web2x&context=3) might be pretty clean.
 
 # Day 20
 Investigate a data structure that makes finding, removing, and inserting an element faster than O(n).  Then revert back to the remove/insert way of moving an element.  Note: requires being able to get an item's index, and insert at index; whereas finding an element is "by value" (using the index created by the enumerate() method).
