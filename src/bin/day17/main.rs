@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 fn main() {
     let path = std::env::args().nth(1)
         .unwrap_or_else(|| "src/bin/day17/input.txt".into());
@@ -8,13 +10,13 @@ fn main() {
     let result1 = part1(input);
     let duration = now.elapsed().as_secs_f64();
     println!("Part 1: {} (in {} seconds)", result1, duration);
-    // assert_eq!(result1, 3161);
+    assert_eq!(result1, 3161);
 
     let now = std::time::Instant::now();
     let result2 = part2(input);
     let duration = now.elapsed().as_secs_f64();
     println!("Part 2: {} (in {} seconds)", result2, duration);
-    // assert_eq!(result2, 0);
+    assert_eq!(result2, 1575931232076);
 }
 
 //
@@ -100,28 +102,30 @@ fn part1(input: &str) -> usize {
 }
 
 //
-// Part 2
+// Clearly, we have to find a repeating pattern, and use that to skip most of
+// the repetitions.  A challenge in finding such a pattern is "uneven edges."
+// It will consume some initial part of the input before it falls into the
+// pattern.  But the most recent (top) rows of the chamber won't match
+// because they are not fully filled in yet (they're waiting for more input).
+// So how do I correlate position in the input to row position in the chamber?
 //
-// We need to detect a recurring pattern.  The total height will be
-// the number of times the pattern can repeat times the height for
-// that pattern, plus additional height for the remaining rocks
-// (a fraction of the pattern).
+// The cycle detection needs to include the offset into the input (left/right
+// moves) sequence, the offset into the rock sequence, and something about
+// the shape of the settled rocks.
 //
-// The input pattern appears to not be a repeating pattern.  Therefore,
-// I think I can check for repeats after every full iteration of the
-// input.
+// Actually, can I assume that it will repeat every (# rocks) * (# left/right)
+// iterations?  (In my case, 10,091 * 5 = 50,455)
+// NO!  A single rock dropping consumes more than one character of input.
 //
-// Is it sufficient to check for a repeating pattern of the height,
-// or do I need to take the top N rows of the chamber into account?
-// Note that the repeat may not be detected on the first two or three
-// iterations since we start with a flat floor, and there may be some
-// interlock of shapes between iterations.
+// For my input, the cycle appears to be 1745 rocks, with a height change
+// of 2750.
 //
-// Oooh.  It could be worse.  The repeating pattern could be multiple
-// iterations of the input.  I need to keep track of at least the
-// changes in height on every iteration of input.  I hope I don't need
-// to also keep track of the top N rows of the chamber after every
-// iteration of the input.
+// Note that the cycle is NOT the first time a rock index and jet index repeat.
+// It's not even the first time that we see the same change in iterations plus
+// change in height.  It appears to be sufficient to find the third occurrence
+// of a given (rock_index, jet_index), where the cycle is between the second and
+// third occurrences.  Or should I also look at the top of the chamber?  Or look
+// for some other quantity to repeat?
 //
 fn part2(input: &str) -> usize {
     let input_length = input.len();
@@ -137,106 +141,15 @@ fn part2(input: &str) -> usize {
 
     const CHAMBER_WALLS: u16 = 0b100000001;
     let mut chamber: Vec<u16> = Vec::with_capacity(4000);
-    let mut last_chamber_used = 0;
     let mut chamber_used = 0;
+    let mut jet_index = 0;
 
-    let mut delta_heights = Vec::<usize>::new();
-    let mut pattern_length;
-    loop {
-        // Do one complete iteration of the input
-        for _ in 0 .. input_length {
-            // Get the next rock
-            let mut rock = rocks.next().unwrap().clone();
+    let mut heights = HashMap::<(u64,usize,Vec<u16>), (u64,usize)>::new();
+    let mut cycle_height = 0;
+    let mut num_cycles = 0;
 
-            // Set the initial height of the rock
-            let mut height = chamber_used + 3;
-
-            // Make sure the chamber is tall enough to accomodate the
-            // current rock at its initial height
-            chamber.resize(height + rock.len(), CHAMBER_WALLS);
-
-            // Let the rock settle
-            loop {
-                // Try to push rock left or right based on input
-                let movement = match input.next().unwrap() {
-                    '>' => |v: u16| v >> 1,
-                    '<' => |v: u16| v << 1,
-                    _ => panic!("invalid input"),
-                };
-                if rock.iter().enumerate().all(|(i,v)| chamber[height+i] & movement(*v) == 0) {
-                    for v in rock.iter_mut() {
-                        *v = movement(*v);
-                    }
-                }
-                // print_chamber(&chamber, height, &rock);
-                // std::thread::sleep(std::time::Duration::from_millis(500));
-    
-                // Try to push rock down
-                if height > 0 && rock.iter().enumerate().all(|(i,v)| chamber[height+i-1] & v == 0) {
-                    height -= 1;
-                } else {
-                    // Rock comes to rest
-                    chamber_used = chamber_used.max(height + rock.len());
-                    for (i, v) in rock.into_iter().enumerate() {
-                        chamber[height + i] |= v;
-                    }
-                    break;
-                }
-                // print_chamber(&chamber, height, &rock);
-                // std::thread::sleep(std::time::Duration::from_millis(500));
-            }
-        }
-        
-        // Get the change in height from this iteration
-        delta_heights.push(chamber_used - last_chamber_used);
-        last_chamber_used = chamber_used;
-
-        // Look for a repeating pattern in the end of delta_heights[]
-        // From looking at debug output, I can see that the repeating
-        // pattern begins on iteration 1 (the second iteration), and
-        // repeats after 7 iterations.
-        // delta_heights[1] == delta_heights[2].
-        // delta_heights[7..=9] are all the same.
-        // So let's look for 5 repeats of the pattern.
-        let iterations = delta_heights.len();
-        pattern_length = iterations / 5;
-        if pattern_length > 0 {
-            let mut found = true;
-            for rep in 1..5 {
-                for offset in 0..pattern_length {
-                    if delta_heights[iterations - 1 - offset] !=
-                        delta_heights[iterations - 1 - offset - rep * pattern_length] {
-                        found = false;
-                    }
-                }
-            }
-
-            // if found {
-            //     dbg!(pattern_length);
-            //     // Make sure that the rock formations are acutally repeating
-            //     let pattern_rocks = pattern_length * input_length;
-            //     if chamber[chamber_used-pattern_rocks .. chamber_used] !=
-            //             chamber[chamber_used - 2 * pattern_rocks .. chamber_used-pattern_rocks] {
-            //         dbg!("Rock patterns don't match!");
-            //         found = false;
-            //     }
-            // }
-            if found {
-                break;
-            }
-        }
-    }
-
-    // Figure out how many more complete repeating patterns of the
-    // input we could fit in, and add that to our result.
-    let pattern_height: usize = delta_heights.iter().rev().take(pattern_length).sum();
-    let pattern_reps = (1000000000000 - delta_heights.len() * input_length) / (pattern_length * input_length);
-    let mut answer = chamber_used + pattern_height * pattern_reps;
-    let rocks_done = delta_heights.len() * input_length + pattern_reps * pattern_length * input_length;
-
-    // Do some more rock falls until we hit the magic total, keeping
-    // track of the additional height added.
-    for _ in rocks_done .. 1000000000000 {
+    let mut iteration: u64 = 0;
+    while iteration < 1_000_000_000_000 {
         // Get the next rock
         let mut rock = rocks.next().unwrap().clone();
 
@@ -247,7 +160,21 @@ fn part2(input: &str) -> usize {
         // current rock at its initial height
         chamber.resize(height + rock.len(), CHAMBER_WALLS);
 
-        // Let the rock settle
+        let live_edge_depth = max_depth(&chamber);
+        let live_edge = Vec::from(&chamber[chamber.len() - live_edge_depth..]);
+
+        let rock_index = iteration % 5;     // We have 5 rocks
+        if let Some((i,h)) = heights.get(&(rock_index, jet_index, live_edge.clone())) {
+            // We have detected a cycle of (iteration-i) rocks, with a height
+            // of (chamber_used-h).
+            let cycle_length = iteration - i;
+            num_cycles = (1_000_000_000_000 - iteration) / cycle_length;
+            cycle_height = chamber_used - h;
+            iteration += num_cycles * cycle_length;
+            heights.clear();
+        }
+        heights.insert((rock_index, jet_index, live_edge), (iteration,chamber_used));
+
         loop {
             // Try to push rock left or right based on input
             let movement = match input.next().unwrap() {
@@ -255,13 +182,13 @@ fn part2(input: &str) -> usize {
                 '<' => |v: u16| v << 1,
                 _ => panic!("invalid input"),
             };
+            jet_index = (jet_index + 1) % input_length;
+
             if rock.iter().enumerate().all(|(i,v)| chamber[height+i] & movement(*v) == 0) {
                 for v in rock.iter_mut() {
                     *v = movement(*v);
                 }
             }
-            // print_chamber(&chamber, height, &rock);
-            // std::thread::sleep(std::time::Duration::from_millis(500));
 
             // Try to push rock down
             if height > 0 && rock.iter().enumerate().all(|(i,v)| chamber[height+i-1] & v == 0) {
@@ -274,14 +201,31 @@ fn part2(input: &str) -> usize {
                 }
                 break;
             }
-            // print_chamber(&chamber, height, &rock);
-            // std::thread::sleep(std::time::Duration::from_millis(500));
+        }
+        iteration += 1;
+    }
+
+    chamber_used + (num_cycles as usize) * cycle_height
+}
+
+//
+// Return the maximum depth from the top most rock piece to the deepest
+// empty space in any column.  This limits how far the vertical line
+// could drop, and should be a good bound for how much of the top of
+// the chamber we need to remember in order to detect a repeating pattern.
+//
+fn max_depth(chamber: &[u16]) -> usize {
+    let mut columns = 0;
+
+    for (i,v) in chamber.iter().rev().map(|v| v & 0b011111110).enumerate() {
+        columns |= v;
+        if columns == 0b011111110 {
+            return i+1;
         }
     }
-    answer += chamber_used - last_chamber_used;
-
-    answer
+    chamber.len()
 }
+
 
 #[cfg(test)]
 fn part2_slow(input: &str) -> usize {
@@ -353,12 +297,30 @@ fn part2_slow(input: &str) -> usize {
 }
 
 #[allow(dead_code)]
-fn print_chamber(chamber: &[u16], height: usize, rock: &[u16]) {
+fn print_chamber_and_rock(chamber: &[u16], height: usize, rock: &[u16]) {
     for (h,v) in chamber.iter().enumerate().rev() {
         let mut bits = *v;
         if h >= height && h < (height + rock.len()) {
             bits |= rock[h-height];
         }
+        print!("|");
+        for mask in [128, 64, 32, 16, 8, 4, 2] {
+            if mask & bits != 0 {
+                print!("#");
+            } else {
+                print!(".");
+            }
+        }
+        println!("|");
+    }
+    println!("---------");
+    println!();
+}
+
+#[allow(dead_code)]
+fn print_chamber(chamber: &[u16]) {
+    for v in chamber.iter().rev() {
+        let bits = *v;
         print!("|");
         for mask in [128, 64, 32, 16, 8, 4, 2] {
             if mask & bits != 0 {
