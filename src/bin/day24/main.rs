@@ -7,53 +7,7 @@ fn main() {
         .unwrap_or_else(|| "src/bin/day24/input.txt".into());
     let input = std::fs::read_to_string(path).unwrap();
 
-    let now = std::time::Instant::now();
-    let result1 = part1(&input);
-    let duration = now.elapsed().as_secs_f64();
-    println!("Part 1: {result1} (in {duration} seconds)");
-    assert_eq!(result1, 299);
-
-    // let now = std::time::Instant::now();
-    // let result2 = part2(&input);
-    // let duration = now.elapsed().as_secs_f64();
-    // println!("Part 2: {result2} (in {duration} seconds)");
-    // assert_eq!(result2, 899);
-}
-
-#[test]
-fn test_part2() {
-    let input = "\
-#.######
-#>>.<^<#
-#.<..<<#
-#>v.><>#
-#<^v^^>#
-######.#
-";
-    assert_eq!(part2(input), 54);
-}
-
-#[test]
-fn test_part1() {
-    let input = "\
-#.######
-#>>.<^<#
-#.<..<<#
-#>v.><>#
-#<^v^^>#
-######.#
-";
-    assert_eq!(part1(input), 18);
-}
-
-#[derive(Debug, PartialEq, Eq, Hash, Clone)]
-struct State2 {
-    position: Point,
-    time: i32
-}
-
-fn part1(input: &str) -> i32 {
-    let (width, height, rows, cols) = parse_input2(input);
+    let (width, height, rows, cols) = parse_input2(&input);
 
     let start = State2 { position: Point::new(0, -1), time: 0 };
     let end = Point::new(width-1, height);
@@ -86,8 +40,32 @@ fn part1(input: &str) -> i32 {
 
         result
     };
-    let (_states, steps) = astar(&start, successors, heuristic, success).unwrap();
-    steps
+
+    //
+    // Part 1
+    //
+    let (_, result1) = astar(&start, successors, heuristic, success).unwrap();
+    println!("Part 1: {result1}");
+    assert_eq!(result1, 299);
+}
+
+#[test]
+fn test_part2() {
+    let input = "\
+#.######
+#>>.<^<#
+#.<..<<#
+#>v.><>#
+#<^v^^>#
+######.#
+";
+    assert_eq!(part2(input), 54);
+}
+
+#[derive(Debug, PartialEq, Eq, Hash, Clone)]
+struct State2 {
+    position: Point,
+    time: i32
 }
 
 fn part2(input: &str) -> i32 {
