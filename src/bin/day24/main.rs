@@ -1,5 +1,3 @@
-use std::collections::HashSet;
-use std::ops::{Add, AddAssign};
 use pathfinding::prelude::astar;
 
 fn main() {
@@ -7,9 +5,9 @@ fn main() {
         .unwrap_or_else(|| "src/bin/day24/input.txt".into());
     let input = std::fs::read_to_string(path).unwrap();
 
-    let (width, height, rows, cols) = parse_input2(&input);
+    let (width, height, rows, cols) = parse_input(&input);
 
-    let start = State2 { position: Point::new(0, -1), time: 0 };
+    let start = Point::new(0, -1);
     let end = Point::new(width-1, height);
     
     let in_bounds = |&Point{x,y}: &Point| -> bool {
@@ -20,12 +18,12 @@ fn main() {
         cols[x as usize].iter().all(|b| b.position(time, height) != y)
     };
 
-    let success = |state: &State2| state.position == end;
-    let heuristic = |state: &State2| -> i32 {
-        // Minimum cost: Manhattan distance to the end point
-        state.position.dist(&end)
-    };
-    let successors = |state: &State2| -> Vec<(State2, i32)> {
+    let success_start = |state: &State| state.position == start;
+    let heuristic_start = |state: &State| state.position.dist(&start);
+    let success_end = |state: &State| state.position == end;
+    let heuristic_end = |state: &State|  state.position.dist(&end);
+
+    let successors = |state: &State| -> Vec<(State, i32)> {
         let x = state.position.x;
         let y = state.position.y;
         let time = state.time + 1;
@@ -33,8 +31,10 @@ fn main() {
 
         for (dx,dy) in [(0,0), (-1,0), (1,0), (0, -1), (0, 1)] {
             let position = Point::new(x+dx, y+dy);
-            if position == end || (in_bounds(&position) && empty_at(&position, time)) {
-                result.push((State2{ position, time }, 1));
+            if position == end || position== start ||
+               (in_bounds(&position) && empty_at(&position, time))
+            {
+                result.push((State{ position, time }, 1));
             }
         }
 
@@ -44,138 +44,33 @@ fn main() {
     //
     // Part 1
     //
-    let (_, result1) = astar(&start, successors, heuristic, success).unwrap();
-    println!("Part 1: {result1}");
-    assert_eq!(result1, 299);
-}
+    let (_, steps1) = astar(
+            &State{ position: start, time: 0},
+            successors, heuristic_end, success_end
+        ).unwrap();
+    println!("Part 1: {steps1}");
+    assert_eq!(steps1, 299);
 
-#[test]
-fn test_part2() {
-    let input = "\
-#.######
-#>>.<^<#
-#.<..<<#
-#>v.><>#
-#<^v^^>#
-######.#
-";
-    assert_eq!(part2(input), 54);
+    //
+    // Part 2
+    //
+    let (_, steps2) = astar(
+            &State{ position: end, time: steps1 },
+            successors, heuristic_start, success_start
+        ).unwrap();
+    let (_, steps3) = astar(
+            &State{ position: start, time: steps1 + steps2 },
+            successors, heuristic_end, success_end
+        ).unwrap();
+    let result2 = steps1 + steps2 + steps3;
+    println!("Part 2: {result2}");
+    assert_eq!(result2, 899);
 }
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
-struct State2 {
+struct State {
     position: Point,
     time: i32
-}
-
-fn part2(input: &str) -> i32 {
-    let (blizzards, walls, width, height) = parse_input(input);
-    let start = Point::new(1,0);
-    let end = Point::new(width-2, height-1);
-    let success_end = |state: &State| state.position == end;
-    let success_start = |state: &State| state.position == start;
-    let heuristic_end = |state: &State| -> i32 {
-        // Minimum cost: Manhattan distance to the end point
-        state.position.dist(&end)
-    };
-    let heuristic_start = |state: &State| -> i32 {
-        // Minimum cost: Manhattan distance to the starting point
-        state.position.dist(&start)
-    };
-    let successors = |state: &State| -> Vec<(State, i32)> {
-        // Compute new locations of the blizzards
-        let mut moved_blizzards = Vec::new();
-        for &(Point{mut x, mut y}, dir) in state.blizzards.iter() {
-            match dir {
-                Direction::Up => {
-                    y -= 1;
-                    if y == 0 {
-                        y = height - 2;
-                    }
-                },
-                Direction::Down => {
-                    y += 1;
-                    if y == height - 1 {
-                        y = 1;
-                    }
-                },
-                Direction::Left => {
-                    x -= 1;
-                    if x == 0 {
-                        x = width - 2;
-                    }
-                },
-                Direction::Right => {
-                    x += 1;
-                    if x == width - 1 {
-                        x = 1;
-                    }
-                },
-            }
-            moved_blizzards.push((Point::new(x, y), dir));
-        }
-
-        // Make a set of blizzard positions
-        let blizzard_positions = moved_blizzards.iter()
-            .map(|&(point,_dir)| point)
-            .collect::<HashSet<_>>();
-        
-        // Figure out which positions we could move into that won't contain
-        // a blizzard.
-        let mut result = Vec::new();
-        for d_point in [Point::new(1, 0), Point::new(0, 1), Point::new(0, 0), Point::new(-1, 0), Point::new(0, -1)] {
-            let position = state.position + d_point;
-            if !walls.contains(&position) && !blizzard_positions.contains(&position) {
-                result.push((State{position, blizzards: moved_blizzards.clone()}, 1));
-            }
-        }
-        result
-    };
-
-    let mut total_steps = 0;
-
-    // Go from start to end
-    let initial_state = State{position: start, blizzards};
-    let (path, steps) = astar(&initial_state, successors, heuristic_end, success_end).unwrap();
-    total_steps += dbg!(steps);
-
-    // Go from end to start
-    let (path, steps) = astar(path.last().unwrap(), successors, heuristic_start, success_start).unwrap();
-    total_steps += dbg!(steps);
-
-    // Go from start to end
-    let (_path, steps) = astar(path.last().unwrap(), successors, heuristic_end, success_end).unwrap();
-    total_steps += dbg!(steps);
-
-    total_steps
-}
-
-fn parse_input(input: &str) -> (Vec<(Point, Direction)>, HashSet<Point>, i32, i32) {
-    let mut width = 0;
-    let mut height = 0;
-    let mut blizzards = Vec::new();
-    let mut walls = HashSet::new();
-    for (y, line) in input.lines().enumerate() {
-        width = line.len() as i32;
-        height += 1;
-        for (x, ch) in line.chars().enumerate() {
-            match ch {
-                '^' => { blizzards.push((Point::new(x as i32, y as i32), Direction::Up)); },
-                'v' => { blizzards.push((Point::new(x as i32, y as i32), Direction::Down)); },
-                '<' => { blizzards.push((Point::new(x as i32, y as i32), Direction::Left)); },
-                '>' => { blizzards.push((Point::new(x as i32, y as i32), Direction::Right)); },
-                '#' => { walls.insert(Point::new(x as i32, y as i32)); }
-                _ => ()
-            }
-        }
-    }
-
-    // Insert walls just beyond the start and end positions to keep from
-    // trying to go around the outside.
-    walls.insert(Point::new(1, -1));
-    walls.insert(Point::new(width - 2, height));
-
-    (blizzards, walls, width, height)
 }
 
 //
@@ -195,7 +90,7 @@ fn parse_input(input: &str) -> (Vec<(Point, Direction)>, HashSet<Point>, i32, i3
 //      2: rows of blizzards that move horizontally
 //      3: columns of blizzards that move vertically
 //
-fn parse_input2(input: &str) -> (i32, i32, Vec<Vec<Blizzard>>, Vec<Vec<Blizzard>>) {
+fn parse_input(input: &str) -> (i32, i32, Vec<Vec<Blizzard>>, Vec<Vec<Blizzard>>) {
     // First, figure out the dimensions of the inner area
     let height = input.lines().count() - 2;
     let width = input.lines().next().unwrap().len() - 2;
@@ -237,20 +132,6 @@ impl Blizzard {
     }
 }
 
-#[derive(PartialEq, Eq, Hash, Clone, Copy)]
-enum Direction {
-    Up,
-    Down,
-    Left,
-    Right
-}
-
-#[derive(PartialEq, Eq, Hash, Clone)]
-struct State {
-    position: Point,
-    blizzards: Vec<(Point, Direction)>
-}
-
 #[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
 struct Point {
     x: i32,
@@ -264,20 +145,5 @@ impl Point {
 
     fn dist(&self, other: &Self) -> i32 {
         (self.x - other.x).abs() + (self.y - other.y).abs()
-    }
-}
-
-impl Add for Point {
-    type Output = Self;
-
-    fn add(self, rhs: Self) -> Self::Output {
-        Point { x: self.x + rhs.x, y: self.y + rhs.y }
-    }
-}
-
-impl AddAssign for Point {
-    fn add_assign(&mut self, rhs: Self) {
-        self.x += rhs.x;
-        self.y += rhs.y;
     }
 }
