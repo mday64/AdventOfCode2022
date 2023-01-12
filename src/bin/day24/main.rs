@@ -1,3 +1,4 @@
+use std::ops::Add;
 use pathfinding::prelude::astar;
 
 fn main() {
@@ -24,13 +25,11 @@ fn main() {
     let heuristic_end = |state: &State|  state.position.dist(&end);
 
     let successors = |state: &State| -> Vec<(State, i32)> {
-        let x = state.position.x;
-        let y = state.position.y;
         let time = state.time + 1;
         let mut result = Vec::new();
 
-        for (dx,dy) in [(0,0), (-1,0), (1,0), (0, -1), (0, 1)] {
-            let position = Point::new(x+dx, y+dy);
+        for movement in [(0,0), (-1,0), (1,0), (0, -1), (0, 1)] {
+            let position = state.position + movement;
             if position == end || position== start ||
                (in_bounds(&position) && empty_at(&position, time))
             {
@@ -145,5 +144,13 @@ impl Point {
 
     fn dist(&self, other: &Self) -> i32 {
         (self.x - other.x).abs() + (self.y - other.y).abs()
+    }
+}
+
+impl Add<(i32, i32)> for Point {
+    type Output = Point;
+
+    fn add(self, rhs: (i32, i32)) -> Self::Output {
+        Point::new(self.x + rhs.0, self.y + rhs.1)
     }
 }
