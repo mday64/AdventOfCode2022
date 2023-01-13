@@ -1,5 +1,5 @@
-use std::collections::{HashMap, HashSet};
-use multiset::HashMultiSet;
+use std::collections::HashSet;
+use std::ops::Add;
 
 fn main() {
     let path = std::env::args().nth(1)
@@ -7,12 +7,16 @@ fn main() {
     let input = std::fs::read_to_string(path).unwrap();
     let positions = parse_input(&input);
 
+    let now = std::time::Instant::now();
     let result1 = part1(positions.clone());
-    println!("Part 1: {result1}");
+    let duration = now.elapsed().as_secs_f64();
+    println!("Part 1: {result1} (in {duration} seconds)");
     assert_eq!(result1, 3882);
 
+    let now = std::time::Instant::now();
     let result2 = part2(positions);
-    println!("Part 2: {result2}");
+    let duration = now.elapsed().as_secs_f64();
+    println!("Part 2: {result2} (in {duration} seconds)");
     assert_eq!(result2, 1116);
 }
 
@@ -79,87 +83,119 @@ fn part2(mut positions: HashSet<Point>) -> u32 {
     rounds
 }
 
+// Neighbor offsets, from upper left, going clockwise
+const NEIGHBORS:[(i32, i32);8] = [(-1,-1), (0,-1), (1,-1), (1,0), (1,1), (0,1), (-1,1), (-1, 0)];
+
 // Do one round of movements.
 // Return true if any elf moved.
+//
+// PERFORMANCE
+//
+// One way to potentially speed it up is to grab all 8 neighbors, and store
+// them temporarily.  First check to see if any are occupied.  If so, then
+// recheck 3 at a time to find the proposed direction.
+//
+// ----
+//
+// According to <https://www.reddit.com/r/adventofcode/comments/zt6xz5/comment/j1dq8oj/>,
+// at most two elves can propose to move to the same location, and they must
+// come from opposite directions.  (If they came from right angles, then the
+// elves would be adjacent diagonally, and therefore wouldn't propose that
+// destination.)
+//
+// That means we don't need to calculate all of the proposed moves before
+// actually moving the elves.  As long as we have separate sets for previous
+// and next positions, and determine and elf's next position based on the
+// previous set, if we find an elf already exists in our proposed destination,
+// we can just push the other elf back to its previous location and not move
+// ourselves.
+//
 fn one_round(positions: &mut HashSet<Point>, directions:&mut Vec<Direction>) -> bool {
-    let mut moved = false;
+    let mut moves = 0;
+
+    let previous = positions.clone();
+    positions.clear();
 
     // Compute the proposed moves and positions
-    let mut proposed_moves = HashMap::<Point, Point>::new();
-    let mut proposed_positions = HashMultiSet::<Point>::new();
-
-    for &Point{x,y} in positions.iter() {
-        if !positions.contains(&Point{x: x-1, y: y-1}) &&
-            !positions.contains(&Point{x,      y: y-1}) &&
-            !positions.contains(&Point{x: x+1, y: y-1}) &&
-            !positions.contains(&Point{x: x-1, y     }) &&
-            !positions.contains(&Point{x: x+1, y     }) &&
-            !positions.contains(&Point{x: x-1, y: y+1}) &&
-            !positions.contains(&Point{x     , y: y+1}) &&
-            !positions.contains(&Point{x: x+1, y: y+1})
-        {
-            // The elf stays where it is
-            proposed_moves.insert(Point{x,y}, Point{x,y});
-            proposed_positions.insert(Point{x,y});
-            continue;
-        }
-
+    for &Point{x,y} in previous.iter() {
+        // print!("({x},{y}): ");
         let mut new_x = x;
         let mut new_y = y;
-        for dir in directions.iter().copied() {
-            match dir {
-                Direction::North => {
-                    if !positions.contains(&Point{x: x-1, y: y-1}) &&
-                        !positions.contains(&Point{x, y: y-1}) &&
-                        !positions.contains(&Point{x: x+1, y: y-1})
-                    {
-                        new_y = y - 1;
-                        break;
-                    }
-                },
-                Direction::South => {
-                    if !positions.contains(&Point{x: x-1, y: y+1}) &&
-                        !positions.contains(&Point{x, y: y+1}) &&
-                        !positions.contains(&Point{x: x+1, y: y+1})
-                    {
-                        new_y = y + 1;
-                        break;
-                    }
-                },
-                Direction::West => {
-                    if !positions.contains(&Point{x: x-1, y: y-1}) &&
-                        !positions.contains(&Point{x: x-1, y}) &&
-                        !positions.contains(&Point{x: x-1, y: y+1})
-                    {
-                        new_x = x - 1;
-                        break;
-                    }
-                },
-                Direction::East => {
-                    if !positions.contains(&Point{x: x+1, y: y-1}) &&
-                        !positions.contains(&Point{x: x+1, y}) &&
-                        !positions.contains(&Point{x: x+1, y: y+1})
-                    {
-                        new_x = x + 1;
-                        break;
-                    }
-                },
-            }
-        }
-        proposed_moves.insert(Point{x,y}, Point{x: new_x, y: new_y});
-        proposed_positions.insert(Point{x: new_x, y: new_y});
-    }
 
-    // Update positions
-    positions.clear();
-    for (old_pos, new_pos) in proposed_moves.into_iter() {
-        if proposed_positions.count_of(&new_pos) == 1 {
-            if old_pos != new_pos {
-                moved = true;
-            }
-            positions.insert(new_pos);
+        // Determine its proposed position (using `previous`)
+        if !previous.contains(&Point{x: x-1, y: y-1}) &&
+            !previous.contains(&Point{x,      y: y-1}) &&
+            !previous.contains(&Point{x: x+1, y: y-1}) &&
+            !previous.contains(&Point{x: x-1, y     }) &&
+            !previous.contains(&Point{x: x+1, y     }) &&
+            !previous.contains(&Point{x: x-1, y: y+1}) &&
+            !previous.contains(&Point{x     , y: y+1}) &&
+            !previous.contains(&Point{x: x+1, y: y+1})
+        {
+            // The elf stays where it is
+            // println!("proposes staying in place");
         } else {
-            positions.insert(old_pos);
+            for dir in directions.iter().copied() {
+                match dir {
+                    Direction::North => {
+                        if !previous.contains(&Point{x: x-1, y: y-1}) &&
+                            !previous.contains(&Point{x, y: y-1}) &&
+                            !previous.contains(&Point{x: x+1, y: y-1})
+                        {
+                            // println!("proposes moving North");
+                            new_y = y - 1;
+                            break;
+                        }
+                    },
+                    Direction::South => {
+                        if !previous.contains(&Point{x: x-1, y: y+1}) &&
+                            !previous.contains(&Point{x, y: y+1}) &&
+                            !previous.contains(&Point{x: x+1, y: y+1})
+                        {
+                            // println!("proposes moving South");
+                            new_y = y + 1;
+                            break;
+                        }
+                    },
+                    Direction::West => {
+                        if !previous.contains(&Point{x: x-1, y: y-1}) &&
+                            !previous.contains(&Point{x: x-1, y}) &&
+                            !previous.contains(&Point{x: x-1, y: y+1})
+                        {
+                            // println!("proposes moving West");
+                            new_x = x - 1;
+                            break;
+                        }
+                    },
+                    Direction::East => {
+                        if !previous.contains(&Point{x: x+1, y: y-1}) &&
+                            !previous.contains(&Point{x: x+1, y}) &&
+                            !previous.contains(&Point{x: x+1, y: y+1})
+                        {
+                            // println!("proposes moving East");
+                            new_x = x + 1;
+                            break;
+                        }
+                    },
+                }
+                }
+        }
+
+        // println!("({x},{y}) -> ({new_x},{new_y})");
+        if positions.insert(Point{x: new_x, y: new_y}) {
+            if new_x != x || new_y != y {
+                moves += 1;
+            }
+        } else {
+            // We collided with an elf coming from the opposite direction.
+            // Move it back (in the same direction)
+            // println!("    COLLISION: ({},{}) <- ({new_x},{new_y})", new_x*2-x, new_y*2-y);
+            positions.remove(&Point{x: new_x, y: new_y});
+            positions.insert(Point{x: new_x*2-x, y: new_y*2-y});
+            moves -= 1;
+            // Leave us in our original position
+            // println!("    ({x},{y}) did not move");
+            positions.insert(Point{x,y});
         }
     }
 
@@ -167,7 +203,7 @@ fn one_round(positions: &mut HashSet<Point>, directions:&mut Vec<Direction>) -> 
     let dir = directions.remove(0);
     directions.push(dir);
 
-    moved
+    moves > 0
 }
 
 fn parse_input(input: &str) -> HashSet<Point> {
@@ -182,10 +218,37 @@ fn parse_input(input: &str) -> HashSet<Point> {
     positions
 }
 
-#[derive(Hash, Clone, PartialEq, Eq)]
+#[allow(dead_code)]
+fn print_elves(positions: &HashSet<Point>) {
+    let min_x = positions.iter().map(|p| p.x).min().unwrap();
+    let max_x = positions.iter().map(|p| p.x).max().unwrap();
+    let min_y = positions.iter().map(|p| p.y).min().unwrap();
+    let max_y = positions.iter().map(|p| p.y).max().unwrap();
+
+    for y in min_y ..= max_y {
+        for x in min_x ..= max_x {
+            if positions.contains(&Point{x,y}) {
+                print!("#");
+            } else {
+                print!(".");
+            }
+        }
+        println!();
+    }
+}
+
+#[derive(Hash, Clone, Copy, PartialEq, Eq)]
 struct Point {
     x: i32,
     y: i32,
+}
+
+impl Add<&(i32,i32)> for &Point {
+    type Output = Point;
+
+    fn add(self, rhs: &(i32,i32)) -> Self::Output {
+        Point{ x: self.x + rhs.0, y: self.y + rhs.1 }
+    }
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -224,4 +287,30 @@ fn test_part2() {
 ";
     let positions = parse_input(input);
     assert_eq!(part2(positions), 20);
+}
+
+#[test]
+fn test_rounds_mini() {
+    let input = "\
+    .....\n\
+    ..##.\n\
+    ..#..\n\
+    .....\n\
+    ..##.\n\
+    .....\n";
+
+    let mut positions = parse_input(input);
+    let mut directions = vec![
+        Direction::North,
+        Direction::South,
+        Direction::West,
+        Direction::East
+    ];
+    println!("== Initial Position ==");
+    print_elves(&positions);
+    for i in 1..=3 {
+        println!("== Round {i} ==");
+        one_round(&mut positions, &mut directions);
+        print_elves(&positions);
+    }
 }
