@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use fxhash::FxHashMap;
 
 fn main() {
     let path = std::env::args().nth(1)
@@ -263,7 +264,7 @@ fn part2_heights(input: &str) -> usize {
     let mut chamber_used = 0;
     let mut cycle_used = 0;
 
-    let mut states = HashMap::<StateKey, StateVal>::new();
+    let mut states = FxHashMap::<StateKey, StateVal>::default();
     let mut cycle_found = false;
 
     let mut iteration: usize = 0;
