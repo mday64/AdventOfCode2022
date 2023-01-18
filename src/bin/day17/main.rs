@@ -9,13 +9,19 @@ fn main() {
     let now = std::time::Instant::now();
     let result1 = part1(input);
     let duration = now.elapsed().as_secs_f64();
-    println!("Part 1: {} (in {} seconds)", result1, duration);
+    println!("Part 1: {} (in {} ms)", result1, duration * 1000.0);
     assert_eq!(result1, 3161);
 
     let now = std::time::Instant::now();
     let result2 = part2(input);
     let duration = now.elapsed().as_secs_f64();
-    println!("Part 2: {} (in {} seconds)", result2, duration);
+    println!("Part 2: {} (in {} ms)", result2, duration * 1000.0);
+    assert_eq!(result2, 1575931232076);
+
+    let now = std::time::Instant::now();
+    let result2 = part2_heights(input);
+    let duration = now.elapsed().as_secs_f64();
+    println!("Part 2 (heights): {} (in {} ms)", result2, duration * 1000.0);
     assert_eq!(result2, 1575931232076);
 }
 
@@ -117,8 +123,8 @@ fn part1(input: &str) -> usize {
 // iterations?  (In my case, 10,091 * 5 = 50,455)
 // NO!  A single rock dropping consumes more than one character of input.
 //
-// For my input, the cycle appears to be 1745 rocks, with a height change
-// of 2750.
+// For my input, the cycle appears to be 1745 rocks (iterations),
+// with a height change of 2750.
 //
 // Note that the cycle is NOT the first time a rock index and jet index repeat.
 // It's not even the first time that we see the same change in iterations plus
@@ -224,6 +230,116 @@ fn max_depth(chamber: &[u16]) -> usize {
         }
     }
     chamber.len()
+}
+
+fn part2_heights(input: &str) -> usize {
+    #[derive(Debug, Hash, PartialEq, Eq)]
+    struct StateKey {
+        rock_index: usize,
+        jet_index: usize,
+        // heights are the per-column distance from highest rock in that column
+        // to the highest rock in all columns.
+        heights: [usize; 7]
+    }
+    #[derive(Debug, PartialEq, Eq)]
+    struct StateVal {
+        iteration: usize,
+        chamber_used: usize
+    }
+    let mut jets = input.chars().enumerate().cycle();
+    let rocks: Vec<Vec<u16>> = vec![
+        vec![0b00111100],
+        vec![0b00010000, 0b00111000, 0b00010000],
+        vec![0b00111000, 0b00001000, 0b00001000],
+        vec![0b00100000, 0b00100000, 0b00100000, 0b00100000],
+        vec![0b00110000, 0b00110000]
+    ];
+    let mut rocks = rocks.iter().cloned().enumerate().cycle();
+
+    const CHAMBER_WALLS: u16 = 0b100000001;
+    let mut chamber: Vec<u16> = Vec::with_capacity(4000);
+    let mut column_used = [0;7];
+    let mut heights = [0;7];
+    let mut chamber_used = 0;
+    let mut cycle_used = 0;
+
+    let mut states = HashMap::<StateKey, StateVal>::new();
+    let mut cycle_found = false;
+
+    let mut iteration: usize = 0;
+    while iteration < 1_000_000_000_000 {
+        // Get the next rock
+        let (rock_index, mut rock) = rocks.next().unwrap();
+
+        // Set the initial height of the rock
+        let mut height = chamber_used + 3;
+
+        // Make sure the chamber is tall enough to accomodate the
+        // current rock at its initial height
+        chamber.resize(height + rock.len(), CHAMBER_WALLS);
+
+        let mut jet_index;
+        let mut jet;
+        loop {
+            // Try to push rock left or right based on the next jet (input)
+            (jet_index, jet) = jets.next().unwrap();
+            let movement = match jet {
+                '>' => |v: u16| v >> 1,
+                '<' => |v: u16| v << 1,
+                _ => panic!("invalid input"),
+            };
+
+            if rock.iter().enumerate().all(|(i,v)| chamber[height+i] & movement(*v) == 0) {
+                for v in rock.iter_mut() {
+                    *v = movement(*v);
+                }
+            }
+
+            // Try to push rock down
+            if height > 0 && rock.iter().enumerate().all(|(i,v)| chamber[height+i-1] & v == 0) {
+                height -= 1;
+            } else {
+                // Rock comes to rest
+                chamber_used = chamber_used.max(height + rock.len());
+                for (i, v) in rock.into_iter().enumerate() {
+                    chamber[height + i] |= v;
+                }
+                break;
+            }
+        }
+
+        // Update the per-column heights
+        for (column, mask) in [128,64,32,16,8,4,2].iter().enumerate() {
+            for h in column_used[column]..chamber_used {
+                if chamber[h] & mask != 0 {
+                    column_used[column] = h + 1;
+                }
+            }
+        }
+        for column in 0..7 {
+            heights[column] = chamber_used - column_used[column];
+        }
+
+        // Look for a repeating cycle
+        if !cycle_found {
+            let state_key = StateKey { rock_index, jet_index, heights };
+            // println!("[{iteration}] state_key = {:?}", state_key);
+            if let Some(old_val) = states.get(&state_key) {
+                let cycle_iterations = iteration - old_val.iteration;
+                let cycle_height = chamber_used - old_val.chamber_used;
+                let num_cycles = (1_000_000_000_000 - iteration) / cycle_iterations;
+                cycle_used = num_cycles * cycle_height;
+                cycle_found = true;
+                iteration += num_cycles * cycle_iterations;
+            } else {
+                states.insert(state_key,StateVal { iteration, chamber_used });
+            }
+        }
+
+        iteration += 1;
+    }
+
+    chamber_used + cycle_used
 }
 
 
