@@ -260,7 +260,6 @@ fn part2_heights(input: &str) -> usize {
     const CHAMBER_WALLS: u16 = 0b100000001;
     let mut chamber: Vec<u16> = Vec::with_capacity(4000);
     let mut column_used = [0;7];
-    let mut heights = [0;7];
     let mut chamber_used = 0;
     let mut cycle_used = 0;
 
@@ -309,20 +308,21 @@ fn part2_heights(input: &str) -> usize {
             }
         }
 
-        // Update the per-column heights
-        for (column, mask) in [128,64,32,16,8,4,2].iter().enumerate() {
-            for h in column_used[column]..chamber_used {
-                if chamber[h] & mask != 0 {
-                    column_used[column] = h + 1;
-                }
-            }
-        }
-        for column in 0..7 {
-            heights[column] = chamber_used - column_used[column];
-        }
-
         // Look for a repeating cycle
         if !cycle_found {
+            // Update the per-column heights
+            for (col_used, mask) in column_used.iter_mut().zip([128,64,32,16,8,4,2]) {
+                for (row, h) in chamber[height..chamber_used].iter().zip(height..) {
+                    if row & mask != 0 {
+                        *col_used = h;
+                    }
+                }
+            }
+
+            let mut heights = column_used;
+            for h in &mut heights {
+                *h = chamber_used - *h;
+            }
             let state_key = StateKey { rock_index, jet_index, heights };
             // println!("[{iteration}] state_key = {:?}", state_key);
             if let Some(old_val) = states.get(&state_key) {
