@@ -1,4 +1,4 @@
-use std::{fmt::Debug, ops::{Add, Sub}, str::FromStr};
+use std::{fmt::Debug, ops::{Add, Sub}, str::FromStr, collections::HashSet};
 use aoc2022::RangeSet;
 
 fn main() {
@@ -7,12 +7,22 @@ fn main() {
     let input = std::fs::read_to_string(path).unwrap();
     let input = input.lines().map(parse_line::<i32>).collect::<Vec<_>>();
 
+    let now = std::time::Instant::now();
     let result1 = part1(&input, 2_000_000);
-    println!("Part 1: {}", result1);
+    let duration = now.elapsed().as_secs_f64();
+    println!("Part 1: {} in {} ms", result1, duration * 1000.0);
     assert_eq!(result1, 4985193);
 
-    let result2 = part2(&input, 4_000_000);
-    println!("Part 2: {}", result2);
+    // let now = std::time::Instant::now();
+    // let result2 = part2_brute_force(&input, 4_000_000);
+    // let duration = now.elapsed().as_secs_f64();
+    // println!("Part 2 (brute force): {} in {} ms", result2, duration * 1000.0);
+    // assert_eq!(result2, 11583882601918);
+
+    let now = std::time::Instant::now();
+    let result2 = part2_line_intersect(&input, 4_000_000);
+    let duration = now.elapsed().as_secs_f64();
+    println!("Part 2 (line intersection): {} in {} ms", result2, duration * 1000.0);
     assert_eq!(result2, 11583882601918);
 }
 
@@ -40,6 +50,7 @@ fn part1(pairs: &[(Point<i32>, Point<i32>)], y: i32) -> i32 {
     ranges.len()
 }
 
+#[allow(dead_code)]
 fn part1_range_set(pairs: &[(Point<i32>, Point<i32>)], y: i32) -> RangeSet<i32> {
     let mut ranges = RangeSet::new();
     for (sensor, beacon) in pairs.iter() {
@@ -65,7 +76,8 @@ fn part1_range_set(pairs: &[(Point<i32>, Point<i32>)], y: i32) -> RangeSet<i32> 
     ranges
 }
 
-fn part2(input: &[(Point<i32>, Point<i32>)], upper_y: i32) -> i64 {
+#[allow(dead_code)]
+fn part2_brute_force(input: &[(Point<i32>, Point<i32>)], upper_y: i32) -> i64 {
     // How do I solve this?  I can't try all 4,000,000 * 4,000,000
     // possible coordinates.
 
@@ -85,7 +97,80 @@ fn part2(input: &[(Point<i32>, Point<i32>)], upper_y: i32) -> i64 {
     panic!("No solution found!");
 }
 
-#[derive(Debug, PartialEq, Eq)]
+//
+// With Manhattan distance, a fixed distance (what would be a circle)
+// ends up being a square rotated by 45º relative to the axes.
+// The solution to part 2 must be a point that has a distance of 1 more
+// than a sensor's radius for at least 4 sensors.
+//
+// The approach we will use is to find the lines that are at a distance
+// of 1 more than any sensor's radius (i.e. just outside the sensor's
+// area).  Find all of the points that are an intersection of two such
+// lines; these are candidates for the solution.  Of those, find the one
+// that is outside the range of all sensors.
+//
+// Note that all of these lines have a slope of +/- 1.
+// We can look for intersections between a slope=1 and slope=-1 line.
+//
+// The point-slope form of a line is:
+//      (y - y1) = m (x - x1) =>
+//      y = m(x - x1) + y1
+//
+// Taking two lines of slope 1 and -1, and solving for x, we get:
+//      x = (x2 + y2 + x1 - y1) / 2
+// Then substitute into the point-slope equation with m=1 to find y:
+//      y = x - x1 + y1
+//
+// Which points shall we use?  It's convenient to pick points at opposite
+// corners of the radius-plus-one square.  Lines with slopes +1 and -1
+// passing through those two points form the four lines bounding the
+// sensor.  For example, consider a sensor of radius 3:
+//
+//          x
+//         xxx
+//        xxxxx
+//      PxxxSxxxQ
+//        xxxxx
+//         xxx
+//          x
+//
+// We'll pick the points marked `P` and `Q`.  To find candidate points, we
+// iterate over pairs of points, associate slope 1 with the first point and
+// slope -1 with the second point, and find the intersection using the formulas
+// above.
+//
+fn part2_line_intersect(input: &[(Point<i32>, Point<i32>)], upper_y: i32) -> i64 {
+    // Build a vector of corner points (P and Q, above)
+    let mut corners = Vec::with_capacity(input.len() * 2);
+    for (sensor, beacon) in input {
+        let dist = sensor.distance_to(beacon) + 1;
+        corners.push(Point(sensor.0 - dist, sensor.1));
+        corners.push(Point(sensor.0 + dist, sensor.1));
+    }
+
+    // Build a vector of candidate solutions
+    let mut candidates = HashSet::new();
+    for Point(x1,y1) in corners.iter() {
+        for Point(x2,y2) in corners.iter() {
+            let x = (x2 + y2 + x1 - y1) / 2;
+            let y = x - x1 + y1;
+            if x >= 0 && x <= upper_y && y >= 0 && y <= upper_y {
+                candidates.insert(Point(x,y));
+            }
+        }
+    }
+
+    // Find the one solution
+    let Point(x,y) = candidates.iter().find(|p| {
+        p.0 >= 0 && p.0 <= upper_y && p.1 >= 0 && p.1 <= upper_y &&
+        input.iter().all(|(sensor, beacon)| {
+            sensor.distance_to(p) > sensor.distance_to(beacon)
+        })
+    }).unwrap();
+    4_000_000i64 * (*x as i64) + (*y as i64)
+}
+
+#[derive(Debug, PartialEq, Eq, Hash)]
 struct Point<T>(T, T);
 
 impl<T> Point<T>
@@ -175,6 +260,6 @@ mod tests {
     #[test]
     fn part2_example() {
         let input = EXAMPLE.lines().map(parse_line::<i32>).collect::<Vec<_>>();
-        assert_eq!(part2(&input, 20), 56000011);
+        assert_eq!(part2_brute_force(&input, 20), 56000011);
     }
 }
