@@ -1,4 +1,4 @@
-use std::{collections::HashSet, ops::RangeInclusive};
+use std::{cell::RefCell, collections::{HashSet,HashMap}, ops::RangeInclusive};
 use pathfinding::prelude::dijkstra;
 
 fn main() {
@@ -6,12 +6,16 @@ fn main() {
         .unwrap_or_else(|| "src/bin/day18/input.txt".into());
     let input = std::fs::read_to_string(path).unwrap();
 
+    let now = std::time::Instant::now();
     let result1 = part1(&input);
-    println!("Part 1: {}", result1);
+    let duration = now.elapsed();
+    println!("Part 1: {result1} in {duration:?}");
     assert_eq!(result1, 3500);
 
+    let now = std::time::Instant::now();
     let result2 = part2(&input);
-    println!("Part 2: {}", result2);
+    let duration = now.elapsed();
+    println!("Part 2: {result2} in {duration:?}");
     assert_eq!(result2, 2048);
 }
 
@@ -39,7 +43,7 @@ fn part2(input: &str) -> usize {
     lava.iter().map(|cube| {
         cube_neighbors(cube)
             .iter()
-            .filter(|neighbor| lava.is_exterior(neighbor))
+            .filter(|neighbor| lava.is_exterior_cached(neighbor))
             .count()
     }).sum()
 }
@@ -50,13 +54,15 @@ type BoundingBox = (RangeInclusive<i8>, RangeInclusive<i8>, RangeInclusive<i8>);
 struct Lava {
     cubes: HashSet<Point>,
     bounds: BoundingBox,
+    exterior_cache: RefCell<HashMap<Point,bool>>,
 }
 
 impl Lava {
     fn new(input: &str) -> Self {
         let cubes = parse_input(input);
         let bounds = get_bounds(&cubes);
-        Self { cubes, bounds, }
+        let exterior_cache = RefCell::new(HashMap::new());
+        Self { cubes, bounds, exterior_cache }
     }
 
     #[allow(dead_code)]
@@ -68,6 +74,15 @@ impl Lava {
         self.cubes.iter()
     }
 
+    fn is_exterior_cached(&self, point: &Point) -> bool {
+        if let Some(result) = self.exterior_cache.borrow().get(point) {
+            return *result;
+        }
+
+        let result = self.is_exterior(point);
+        self.exterior_cache.borrow_mut().insert(*point, result);
+        result
+    }
     //
     // A cube is exterior if it has a path to a point outside the bounding box
     //
