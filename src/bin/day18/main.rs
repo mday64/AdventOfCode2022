@@ -1,5 +1,5 @@
 use std::{cell::RefCell, collections::{HashSet,HashMap}, ops::RangeInclusive};
-use pathfinding::prelude::dijkstra;
+use pathfinding::prelude::{dfs, dijkstra};
 
 fn main() {
     let path = std::env::args().nth(1)
@@ -131,49 +131,37 @@ impl Lava {
             return false;
         }
 
-        // Points to be be examined.  `frontier` contains the same points as
-        // `stack`, but is more efficient for containment checks.
-        let mut stack = Vec::new();
-        let mut frontier = HashSet::new();
-
-        // Points that have been visited along the way.
         let mut visited = HashSet::new();
 
-        // Start the search from the point that was passed in
-        stack.push(*point);
-        frontier.insert(*point);
+        let successors = |cube: &Point| {
+            let neighbors: Vec<_> = cube_neighbors(cube).into_iter()
+                .filter(|p| !self.cubes.contains(p) && !visited.contains(p))
+                .collect();
+            visited.extend(neighbors.iter().cloned());
+            neighbors
+        };
+        let success = |cube: &Point| -> bool {
+            if self.out_of_bounds(cube) {
+                // We've reached an exterior point.  Add it to the cache.
+                // When we fall through, we will return `true` from this
+                // closure.
+                self.exterior_cache.borrow_mut().insert(*cube, true);
+            }
+            // In this case, "success" means that we have determined
+            // whether the original point is exterior or interior.
+            // If not, we have to keep searching.
+            self.exterior_cache.borrow().contains_key(cube)
+        };
 
         let mut result = false;
-        while let Some(p) = stack.pop() {
-            frontier.remove(&p);
-            visited.insert(p);
-
-            if self.out_of_bounds(&p) {
-                result = true;
-                break;
-            }
-
-            if let Some(r) = self.exterior_cache.borrow().get(&p) {
-                result = *r;
-                break;
-            }
-
-            for neighbor in cube_neighbors(&p) {
-                if !self.cubes.contains(&neighbor) &&
-                   !frontier.contains(&neighbor) &&
-                   !visited.contains(&neighbor)
-                {
-                    stack.push(neighbor);
-                    frontier.insert(neighbor);
-                }
-            }
+        if let Some(path) = dfs(*point, successors, success) {
+            let last = path.last().unwrap();
+            let cache = self.exterior_cache.borrow_mut();
+            result = cache.get(last).cloned().unwrap();
         }
-
-        // Update the cache for all points we encountered in the search
         let mut cache = self.exterior_cache.borrow_mut();
         cache.extend(visited.into_iter().map(|p| (p, result)));
-        cache.extend(frontier.into_iter().map(|p| (p, result)));
-
+        cache.insert(*point, result);
         result
     }
 }
