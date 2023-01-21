@@ -43,7 +43,7 @@ fn part2(input: &str) -> usize {
     lava.iter().map(|cube| {
         cube_neighbors(cube)
             .iter()
-            .filter(|neighbor| lava.is_exterior_cached(neighbor))
+            .filter(|neighbor| lava.is_exterior_dfs(neighbor))
             .count()
     }).sum()
 }
@@ -74,6 +74,7 @@ impl Lava {
         self.cubes.iter()
     }
 
+    #[allow(dead_code)]
     fn is_exterior_cached(&self, point: &Point) -> bool {
         if let Some(result) = self.exterior_cache.borrow().get(point) {
             return *result;
@@ -83,9 +84,11 @@ impl Lava {
         self.exterior_cache.borrow_mut().insert(*point, result);
         result
     }
+
     //
     // A cube is exterior if it has a path to a point outside the bounding box
     //
+    #[allow(dead_code)]
     fn is_exterior(&self, point: &Point) -> bool {
         if self.cubes.contains(point) {
             return false;
@@ -103,6 +106,75 @@ impl Lava {
             !self.bounds.2.contains(&cube.2)
         };
         dijkstra(point, successors, success).is_some()
+    }
+
+    fn out_of_bounds(&self, point: &Point) -> bool {
+        !self.bounds.0.contains(&point.0) ||
+        !self.bounds.1.contains(&point.1) ||
+        !self.bounds.2.contains(&point.2)
+    }
+
+    //
+    // Determine whether the given point is connected to any point
+    // point outside the bounding box.  Makes use of, and maintains,
+    // the exterior_cache.
+    //
+    // This uses a depth-first search.  Every point visited in the search,
+    // or waiting to be visited, and therefore connected to the original
+    // point, will be added to exterior_cache once the answer is known.
+    //
+    fn is_exterior_dfs(&self, point: &Point) -> bool {
+        if let Some(result) = self.exterior_cache.borrow().get(point) {
+            return *result;
+        }
+        if self.cubes.contains(point) {
+            return false;
+        }
+
+        // Points to be be examined.  `frontier` contains the same points as
+        // `stack`, but is more efficient for containment checks.
+        let mut stack = Vec::new();
+        let mut frontier = HashSet::new();
+
+        // Points that have been visited along the way.
+        let mut visited = HashSet::new();
+
+        // Start the search from the point that was passed in
+        stack.push(*point);
+        frontier.insert(*point);
+
+        let mut result = false;
+        while let Some(p) = stack.pop() {
+            frontier.remove(&p);
+            visited.insert(p);
+
+            if self.out_of_bounds(&p) {
+                result = true;
+                break;
+            }
+
+            if let Some(r) = self.exterior_cache.borrow().get(&p) {
+                result = *r;
+                break;
+            }
+
+            for neighbor in cube_neighbors(&p) {
+                if !self.cubes.contains(&neighbor) &&
+                   !frontier.contains(&neighbor) &&
+                   !visited.contains(&neighbor)
+                {
+                    stack.push(neighbor);
+                    frontier.insert(neighbor);
+                }
+            }
+        }
+
+        // Update the cache for all points we encountered in the search
+        let mut cache = self.exterior_cache.borrow_mut();
+        cache.extend(visited.into_iter().map(|p| (p, result)));
+        cache.extend(frontier.into_iter().map(|p| (p, result)));
+
+        result
     }
 }
 
