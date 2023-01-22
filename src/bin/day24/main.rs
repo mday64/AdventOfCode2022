@@ -43,16 +43,19 @@ fn main() {
     //
     // Part 1
     //
+    let now = std::time::Instant::now();
     let (_, steps1) = astar(
             &State{ position: start, time: 0},
             successors, heuristic_end, success_end
         ).unwrap();
-    println!("Part 1: {steps1}");
+    let duration = now.elapsed();
+    println!("Part 1: {steps1} in {duration:?}");
     assert_eq!(steps1, 299);
 
     //
     // Part 2
     //
+    let now = std::time::Instant::now();
     let (_, steps2) = astar(
             &State{ position: end, time: steps1 },
             successors, heuristic_start, success_start
@@ -62,7 +65,8 @@ fn main() {
             successors, heuristic_end, success_end
         ).unwrap();
     let result2 = steps1 + steps2 + steps3;
-    println!("Part 2: {result2}");
+    let duration = now.elapsed();
+    println!("Part 2: {result2} in {duration:?}");
     assert_eq!(result2, 899);
 }
 
@@ -127,7 +131,11 @@ impl Blizzard {
     }
 
     fn position(&self, time: i32, modulus: i32) -> i32 {
-        (self.initial + time * self.direction).rem_euclid(modulus)
+        let mut answer = (self.initial + time * self.direction) % modulus;
+        if answer < 0 {
+            answer += modulus;
+        }
+        answer
     }
 }
 
