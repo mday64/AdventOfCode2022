@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use fxhash::FxHashSet as HashSet;
 use std::ops::{Add, AddAssign, Sub, Mul};
 
 fn main() {
@@ -158,7 +158,7 @@ fn one_round(positions: &mut HashSet<Point>, directions:&mut Vec<Direction>) -> 
 }
 
 fn parse_input(input: &str) -> HashSet<Point> {
-    let mut positions = HashSet::<Point>::new();
+    let mut positions = HashSet::<Point>::default();
     for (y, line) in input.lines().enumerate() {
         for (x, ch) in line.chars().enumerate() {
             if ch == '#' {
