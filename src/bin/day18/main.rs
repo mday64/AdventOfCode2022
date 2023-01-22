@@ -1,5 +1,6 @@
-use std::{cell::RefCell, collections::{HashSet,HashMap}, ops::RangeInclusive};
+use std::{cell::RefCell, ops::RangeInclusive};
 use pathfinding::prelude::{dfs, dijkstra};
+use fxhash::{FxHashSet as HashSet, FxHashMap as HashMap};
 
 fn main() {
     let path = std::env::args().nth(1)
@@ -61,7 +62,7 @@ impl Lava {
     fn new(input: &str) -> Self {
         let cubes = parse_input(input);
         let bounds = get_bounds(&cubes);
-        let exterior_cache = RefCell::new(HashMap::new());
+        let exterior_cache = RefCell::new(HashMap::default());
         Self { cubes, bounds, exterior_cache }
     }
 
@@ -131,7 +132,7 @@ impl Lava {
             return false;
         }
 
-        let mut visited = HashSet::new();
+        let mut visited = HashSet::default();
 
         let successors = |cube: &Point| {
             let neighbors: Vec<_> = cube_neighbors(cube).into_iter()
@@ -201,7 +202,7 @@ fn cube_neighbors(&(x,y,z): &Point) -> Vec<Point> {
 }
 
 fn parse_input(input: &str) -> HashSet<Point> {
-    let mut cubes = HashSet::<(i8,i8,i8)>::new();
+    let mut cubes = HashSet::default();
     for line in input.lines() {
         let mut numbers = line.split(',').map(|s| s.parse::<i8>().unwrap());
         let point = (numbers.next().unwrap(), numbers.next().unwrap(), numbers.next().unwrap());

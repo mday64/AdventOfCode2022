@@ -17,3 +17,7 @@ nom = "7.1.1"
 pathfinding = "4.0.0"
 rayon = "1.6.1"
 regex = "1.7"
+
+[profile.release]
+lto = true
+codegen-units = 1
