@@ -11,14 +11,6 @@ fn main() {
     let start = Point::new(0, -1);
     let end = Point::new(width-1, height);
     
-    let in_bounds = |&Point{x,y}: &Point| -> bool {
-        x >= 0 && x < width && y >= 0 && y < height
-    };
-    let empty_at = |&Point{x,y}: &Point, time: i32| -> bool {
-        rows[y as usize].iter().all(|b| b.position(time, width) != x) &&
-        cols[x as usize].iter().all(|b| b.position(time, height) != y)
-    };
-
     let success_start = |state: &State| state.position == start;
     let heuristic_start = |state: &State| state.position.dist(&start);
     let success_end = |state: &State| state.position == end;
@@ -28,13 +20,113 @@ fn main() {
         let time = state.time + 1;
         let mut result = Vec::new();
 
-        for movement in [(0,0), (-1,0), (1,0), (0, -1), (0, 1)] {
-            let position = state.position + movement;
-            if position == end || position== start ||
-               (in_bounds(&position) && empty_at(&position, time))
-            {
-                result.push((State{ position, time }, 1));
+        let mut ok_up = true;
+        let mut ok_down = true;
+        let mut ok_left = true;
+        let mut ok_right = true;
+        let mut ok_center = true;
+
+        let x = state.position.x;
+        let y = state.position.y;
+
+        if y == -1 {
+            // assert_eq!(x, 0);
+            ok_up = false;
+            ok_right = false;
+            ok_left = false;
+        }
+
+        if y == height {
+            // assert_eq!(x, width-1);
+            ok_down = false;
+            ok_left = false;
+            ok_right = false;
+        }
+
+        for blizzard in &cols[x as usize] {
+            let yy = blizzard.position(time, height);
+            if yy == y - 1 {
+                ok_up = false;
             }
+            if yy == y {
+                ok_center = false;
+            }
+            if yy == y + 1 {
+                ok_down = false;
+            }
+        }
+
+        if y >= 0 && y < height {
+            for blizzard in &rows[y as usize] {
+                let xx = blizzard.position(time, width);
+                if xx == x - 1 {
+                    ok_left = false;
+                }
+                if xx == x {
+                    ok_center = false;
+                }
+                if xx == x + 1 {
+                    ok_right = false;
+                }
+            }
+        }
+
+        if ok_up && y > 0 {
+            if rows[(y-1) as usize].iter().any(|b| b.position(time, width) == x) {
+                ok_up = false;
+            }
+        } else {
+            ok_up = false;
+        }
+
+        if ok_down && y < height - 1 {
+            if rows[(y+1) as usize].iter().any(|b| b.position(time, width) == x) {
+                ok_down = false;
+            }
+        } else {
+            ok_down = false;
+        }
+
+        if ok_left && x > 0 {
+            if cols[(x-1) as usize].iter().any(|b| b.position(time, height) == y) {
+                ok_left = false;
+            }
+        } else {
+            ok_left = false;
+        }
+
+        if ok_right && x < width - 1 {
+            if cols[(x+1) as usize].iter().any(|b| b.position(time, height) == y) {
+                ok_right = false;
+            }
+        } else {
+            ok_right = false;
+        }
+
+        if ok_up || (x == 0 && y == 0) {
+            let position = state.position + (0, -1);
+            // assert!(position == start || (_in_bounds(&position) && _empty_at(&position, time)));
+            result.push((State{position, time}, 1));
+        }
+        if ok_down || (x == width-1 && y == height-1) {
+            let position = state.position + (0,1);
+            // assert!(position == end || (_in_bounds(&position) && _empty_at(&position, time)));
+            result.push((State{position, time}, 1));
+        }
+        if ok_left {
+            let position = state.position + (-1, 0);
+            // assert!(_in_bounds(&position));
+            // assert!(_empty_at(&position, time));
+            result.push((State{position, time}, 1));
+        }
+        if ok_right {
+            let position = state.position + (1, 0);
+            // assert!(_in_bounds(&position));
+            // assert!(_empty_at(&position, time));
+            result.push((State{position, time}, 1));
+        }
+        if ok_center {
+            result.push((State{position: state.position, time}, 1));
         }
 
         result
@@ -156,6 +248,14 @@ impl Point {
 }
 
 impl Add<(i32, i32)> for Point {
+    type Output = Point;
+
+    fn add(self, rhs: (i32, i32)) -> Self::Output {
+        Point::new(self.x + rhs.0, self.y + rhs.1)
+    }
+}
+
+impl Add<(i32, i32)> for &Point {
     type Output = Point;
 
     fn add(self, rhs: (i32, i32)) -> Self::Output {
