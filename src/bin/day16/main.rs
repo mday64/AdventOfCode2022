@@ -8,12 +8,14 @@ fn main() {
         .unwrap_or_else(|| "src/bin/day16/input.txt".into());
     let input = std::fs::read_to_string(path).unwrap();
 
+    // 0.025051602 seconds
     let start_time = Instant::now();
     let result1 = part1(&input);
     let duration = start_time.elapsed().as_secs_f64();
     println!("Part 1: {} ({} seconds)", result1, duration);
     assert_eq!(result1, 1701);
 
+    // 0.01030937 seconds
     let start_time = Instant::now();
     let result2 = part2b(&input);
     let duration = start_time.elapsed().as_secs_f64();
@@ -40,7 +42,7 @@ fn main() {
 // calculate the time to move between valves using the locations with
 // zero flow.  That is all pairs shortest paths.
 //
-// Part 1: 1701 (0.026548244 seconds)
+// Part 1: 1701 (0.025051602 seconds)
 fn part1(input: &str) -> u32 {
     #[derive(PartialEq, Eq, Hash, Clone, Debug)]
     struct State {
@@ -106,7 +108,7 @@ fn part1(input: &str) -> u32 {
 // time (essentially part 1), then remove those valves from consideration and
 // run again for the elephant.  The answer is the total flow from both runs.
 //
-// Part 2: 2455 (0.00992021 seconds)
+// Part 2: 2455 (0.01030937 seconds)
 fn part2b(input: &str) -> u32 {
     #[derive(PartialEq, Eq, Hash, Clone, Debug)]
     struct State {
