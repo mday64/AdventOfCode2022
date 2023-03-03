@@ -15,6 +15,7 @@ fn main() -> anyhow::Result<()> {
     // to a number ("priority").  The final answer is the sum of those
     // numbers ("priorities").
     //
+    let now = std::time::Instant::now();
     let result1: u32 = input.lines().map(|line| {
         let (first, second) = line.split_at(line.len()/2);
         let first_half = first.chars().collect::<HashSet<char>>();
@@ -23,7 +24,8 @@ fn main() -> anyhow::Result<()> {
 
         priority(overlap)
     }).sum();
-    println!("Part 1: {}", result1);
+    let duration = now.elapsed();
+    println!("Part 1: {result1} in {duration:?}");
     assert_eq!(result1, 7872);
 
     //
@@ -32,6 +34,7 @@ fn main() -> anyhow::Result<()> {
     // This time, we're trying to find the one common letter for every 3 lines.
     // Use the same mechanism to compute "priorities" and sum them.
     //
+    let now = std::time::Instant::now();
     let result2: u32 = input.lines().tuples().map(|(line1, line2, line3)| {
         let letters1 = line1.chars().collect::<HashSet<char>>();
         let letters2 = line2.chars().collect::<HashSet<char>>();
@@ -43,7 +46,8 @@ fn main() -> anyhow::Result<()> {
 
         priority(overlap)
     }).sum();
-    println!("Part 2: {}", result2);
+    let duration = now.elapsed();
+    println!("Part 2: {result2} in {duration:?}");
     assert_eq!(result2, 2497);
 
     Ok(())
