@@ -18,7 +18,7 @@ fn main() {
 
 fn part1(blueprints: &[Blueprint]) -> u16 {
     blueprints.par_iter().map(|blueprint|
-        blueprint.id as u16 * collect_geodes(blueprint, 24) as u16
+        blueprint.id * collect_geodes(blueprint, 24)
     ).sum()
 }
 

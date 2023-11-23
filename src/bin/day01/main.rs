@@ -3,7 +3,7 @@ use anyhow::{self, Context as _};
 fn main() -> anyhow::Result<()> {
     let filename = std::env::args().nth(1)
         .unwrap_or_else(|| String::from("src/bin/day01/input.txt"));
-    let input = std::fs::read_to_string(&filename)
+    let input = std::fs::read_to_string(filename)
         .context("opening input")?;
 
     let mut elf_totals = input.split("\n\n").map(|s| {

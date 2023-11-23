@@ -42,7 +42,6 @@ fn part2(input: &str) -> String {
 
     // Now execute the movements
     for Movement{count, source, dest} in movements {
-        let count = count as usize;
         let source = &mut stacks[source - 1];
         let moved = source.split_off(source.len() - count);
         let dest = &mut stacks[dest - 1];
